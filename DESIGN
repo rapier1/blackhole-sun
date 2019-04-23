@@ -1,0 +1,195 @@
+﻿Black Hole SUN Design Document
+
+Goal: Develop a web based administrative tool to manage black hole routes for the 3ROX environment
+
+Elements:
+
+Web based UI: This will be provide users with the ability to add back hole routes, manage existing 
+routes, audit activity, report on historical/contemporary data, provide administration options, and 
+manage/create/audit users.
+
+Database: This will include a database (TBD) that will act as the canonical repository for all black 
+hole route data. This will encompass both current and historical actions. The database will provide 
+information on route requestor, change times, change status and other auditing requirements. The 
+database will also serve as a store of routing information as it relates to routes various 
+customers/users have administrative control over. This routing data will be provided via a 
+standalone process that queries a canonical source of routing information (likely RADB).
+
+Processing engine: This will be a set of routines (possibly monolithic, possible distinct 
+applications) that act as the ‘glue’ between the web based UI and the database. Strictly speaking 
+the web UI will not have direct access to the database but will use this engine as a mediator (the 
+purpose of which is to clearly delineate the differing areas of responsibility and silo data flow so 
+as to force interdependency along clearly defined paths). These routines will parse incoming data 
+from the web ui, form valid SQL, execute this SQL, and provide confirmation of the action. 
+Additionally, the engine will periodically poll the database, look for expired entries, new entries 
+sourced from external methods (direct input), and other changes to the data. These changes will then 
+be used to craft valid commands for the ExaBGP service. These commands will then be executed on the 
+ExaBGP service and the results of that command parsed and written to the database.
+
+Considerations:
+
+Security: As this system has the ability to filter incoming routes it is imperative that only 
+authorized users have the ability to add/delete black hole routes. Security may be enhanced through 
+the use of infrastructure (up to date fully patched OS and applications), networking (VPNs, limited 
+access network), authentication, and best application development practices. Authentication 
+considerations follow.
+
+Authentication: PSC has the ability to authenticate users through a number of methods. Of interest 
+is tying into the PSC RADIUS server. However, in the event of a significant attack it may be that 
+the RADIUS server will be inaccessible. While this may be a remote possibility that may be mitigated 
+through network design it is still a consideration. As such, no decision has been clearly made in 
+terms of RADIUS authentication versus local only authentication versus other methods (2FA etc). A 
+decision will be required to determine if this is a high priority critical service. If so then steps 
+will need to be taken in order to reduce interdependence on other services.
+
+UI Design: While a pleasing and intuitive design is important the current staff may not have the 
+required skill set to fully implement such a design. As such initial designs will be focused on 
+simplicity and stability. All care will be taken to separate the design elements from the data 
+elements as much as possible. This should ease the burden of overlaying more pleasing design in 
+future iterations.
+
+Multi-user, 3rd party users: The system will be developed to ensure that users will not be able to 
+‘step on’ other users during the update phase. As such, table locking and other mechanisms will be 
+deployed in order to reduce the impact of multiple users engaging with the system simultaneously. 
+Additionally, this system will be designed so that it may eventually be deployed to other authorized 
+users outside of the PSC administrative domain. This will be accomplished through the use of user 
+roles and circumscribing access to routes based on the role or class of user. For example, a PSC 
+user will have access to all tranches of routes. However, a user associated with RMU will only have 
+access to the RMU tranche. Alternatively, a DQE associated user might have access to multiple 
+tranches but not all. This tranching will be created through the use of RADB or other network access 
+databases and be used as part of the data validations routines.
+
+Data validation: Validating the input data will fall into two realms. The first is data integrity. 
+Does the user entered data conform to the expected data types? Malformed IPs (v4 and v6) will be 
+rejected. Black hole decay rates will be validated to make sure they conform to upper and lower 
+bounds, numericity, and so forth. All user entered data will also be processed to guard against SQL 
+injection attacks and other malevolent actions. The second step is determining if the user has 
+administrative control over the routes requested. In the event of a user trying to access 
+unauthorized routes the attempt will be logged for security audit puposes.
+
+ExaBGP: The target version of ExaBGP will be 4.08 or later. This conforms to our installed version 
+and provides greater flexibility for future versions of the application - such as implementing RFC 
+5575 (BGP Flow Spec).
+
+Proposed Workflow
+
+1. User authentication
+   a. Via RADIUS or local authentication
+      i. Initially through local authentication provided by database back end. 
+2. User Presentation
+   a. Black hole entry form
+      i. User enters IP (v4/v6), duration, and notes (TT#)
+      ii. Goto 3
+   b. Current black hole list
+      i. User presented with list of current black holes
+         (1). Sortable
+      i. This is also a form that allows users to delete or extend current black hole routes
+         (2). If form entry goto 4
+   c. Administrative form[a][b]
+      i. User management
+         (1). User may create, modify, or delete users
+         (2). Goto 5
+      ii. System Administration
+         (1). TBD
+   d. Historical reporting functions
+      i. User provides date range or search parameters
+      ii. Goto 6
+3. Black Hole Entry
+   a. User data is checked for malformed data or attempts to corrupt the database
+   b. DB is queried to see if there are black hole slots available (limited to 50 at the moment - 
+	config time parameter).
+   c. Requested IP route is sent to processing engine (step 7)
+   d. Results of request are displayed to user
+4. Current black hole list
+   a. Query sent to processing engine (step 7)
+   b. Results displayed filtered by user role
+   c. If user makes changes to routes data is validated and then passed to processing engine (step 7)
+   d. Results displayed to user
+5. User Management
+   a. User with ADMIN role may add, modify, and delete other users
+   b. User entered data is validated and sent to processing engine (step 7)
+   c. Results are displayed to ADMIN role user
+      i. Email sent to new user? 
+6. Historical reporting functions
+   a. Date range and search parameters to be determined
+   b. User data validated, sent to processing engine, results displayed. 
+7. Processing engine
+   a. Processing engine accepts request form web application
+      i. All requested are tagged with the type of command requested eg New Route Request, Update 
+	Route Request, New User Request, etc
+      ii. All requests will touch the database so the request will be transformed into valid DB 
+	request (e.g. SQL). If the request does not succeed the processing engine will immediately inform 
+	the user of the failure and type of failure.
+      iii. For requests that will touch the ExaBGP service upon successful entry in the database the 
+	request will then be transformed into a value ExaBGP requested and sent to the service. The 
+	results of that will then be used to update the status of the request in the database (shift 
+	from ‘pending’ to ‘in service’ or ‘in service’ to ‘expired’ etc). The results will also be 
+	communicated to the user.
+   b. Processing engine periodic checks[c][d]
+      i. The engine will also periodically scan the database for two specific things
+         (1). Any and all pending requests in the database. 
+            a. This will follow 7. a) iii with the exception of reporting the results back to the 
+		user as there is likely no valid socket to a web browser.
+         (2). Route expiration
+            a. When the decay timer on a route request has expired the processing engine will follow 
+		7. b) i. (1) (a).
+      ii. Any actions which modify the database or touch the ExaBGP service will be tracked within 
+	the database for audit trails.
+      iii. Additionally, the processing engine will query the ExaBGP service for a list of all 
+	active black hole routes and compare that list to the routes from the database. In the event 
+	of disagreement the database will be seen as the canonical source.
+8. User logout and/or timeout
+   a. On user logout or time out (30 minutes) the user will lose any authentication 
+	tokens/cookies/etc from their local store. Time of logout/timeout may be added to user 
+	activity logs in the database.
+
+Random thoughts:
+
+The method of interacting with the ExaBGP seems to be via STDOUT. So this means we need to have a 
+process running on the ExaBGP server that will accept inbound communication and then write it to 
+STDOUT. This isn’t that hard but creates a problem - if we have a listening service we need to make 
+sure it *ONLY* accepts connections from the processing engine. So we need to come up with a way to 
+create an authenticated and secure connection between the two. Maybe an SSH process? ExaBGP does 
+have a way in which it can start a script or process that it will use to read STDOUT automagically. 
+For example the following examples http://www.nettinkerer.org/building-a-rest-api-for-exbgp/ and 
+https://thepacketgeek.com/tag/exabgp/ are both written in python but neither have any level of 
+authentication or security built into them. Obviously we can run this over SSL but the auth part is 
+lacking.
+
+We can build most of the components relatively independent of each other. They just need to have a 
+standardized interface.
+
+Some aspects of the database will be tricky. The table for the routes themselves will be pretty 
+straightforward. However, accounting and user management is potentially going to be tricky.
+
+Checkout Loopback for node.js. Might be a very quick way to build a restful API. 
+https://loopback.io/ I’m just still hung up on the authentication part. No, I think I should be hung 
+up on it. Mostly I just need to build a server that will listen, accept inbound private keys, and 
+auth against those (like with ssh). Interfacing with ExaBGP is just a matter of spitting out things 
+on STDOUT and parsing any response. I could do all of that in perl if I really wanted to and I would 
+probably feel better about it. Look at https://metacpan.org/pod/Crypt::PK::DH
+
+
+   1. Both sides have to have pub/private RSA keys. Public keys must be exchanged
+   2. Each side generates new pub/private DH keys
+	a. my $pk = Crypt::PK::DH->new(); #bob and alice
+	   $pk->generate_key(128);
+	   my $private = $pk->export_key('private');
+	   my $public = $pk->export_key('public');
+   3. Each side signs $public with the public RSA key 
+	a. my $priv = Crypt::PK::RSA->new('Alice_priv_rsa1.der'); #alice
+	   my $sig = $priv->sign_message($public);
+   4. Each side exchanges signature and public DH key ($sig, $public)
+   5. The signature and message are verified against the public key
+	a. my $pub = Crypt::PK::RSA->new('Alice_pub_rsa1.der'); #bob’s side
+	   $pub->verify_message($sig, $public) or die "ERROR";
+   6. Once verified the DH shared secret magic can happen
+	a. my $shared_secret = 
+	   dh_shared_secret('Alice_priv_dh1.key', 'Bob_pub_dh1.key'); # Alice’s side
+   7. The client then send their shared secret to the server. If the shared secrets match then the 
+	client is authenticated.
+	
+Need to make a forked server so multiple people can access the ExaBGP process at the same time. This 
+applies to the processing engine and the ExaBGP interface. Can take this, in part, from the 
+trmanager code from testrig. Wedge in the DH key exchange for auth. Both the interface and engine 
+will have this same core. Then layer on more things for the engine.

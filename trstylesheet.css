@@ -1,0 +1,57 @@
+	#container-isolist {
+		box-shadow: 0 0 30px black;
+		padding-top: 20px;
+		padding-left: 40px;
+		padding-right: 40px;
+		padding-bottom: 20px;
+
+	 }
+
+	.main-panels {
+		box-shadow: 0 0 30px black;
+                padding-top: 20px;
+                padding-left: 40px;
+                padding-right: 40px;
+                padding-bottom: 20px;
+
+	 }
+
+	#container-admin {
+
+	 }
+
+	body {
+  		padding-top: 50px;
+	 }
+
+	.starter-template {
+		padding: 50px 15px;
+	 }
+
+	.isoList {
+		padding: 20px 15px;
+		overflow-x: scroll;
+		overflow-y: scroll;
+	 }
+
+
+	#contactInformation {
+
+		box-shadow: 0 0 30px black;
+                padding-top: 20px;
+                padding-left: 40px;
+                padding-right: 40px;
+                padding-bottom: 20px;
+
+	}
+
+	#loginSection {
+
+                box-shadow: 0 0 30px black;
+                padding-top: 20px;
+                padding-left: 40px;
+                padding-right: 40px;
+                padding-bottom: 20px;
+
+        }
+
