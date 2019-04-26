@@ -12,7 +12,7 @@
                     <p id="successModalText" class="text-success">Something good happened.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="success-close">Close</button>
                 </div>
             </div>
         </div>
@@ -28,7 +28,7 @@
                     <p id="warnModalText" class="text-warning">Giving you a warning.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="warnclose">Close</button>
                 </div>
             </div>
         </div>
@@ -44,7 +44,7 @@
                     <p id="errorModalText" class="text-danger">Oh no an error occurred.</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="error-close">Close</button>
                 </div>
             </div>
         </div>

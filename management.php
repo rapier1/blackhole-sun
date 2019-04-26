@@ -101,10 +101,11 @@
             </div>
             <div id="navbar" class="collapse navbar-collapse">
                 <ul class="nav navbar-nav">
-		    <!--                                  <li><a id="menu-home" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">About</a></li>
-			 <li><a id="menu-faq" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-                         </ul>
-			 <p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='https://<?php echo $_SERVER['SERVER_NAME']?>/signup.php'"  type="button" class="btn btn-sm btn-primary">Sign Up</button></p> -->
+		    <li><a id="menu-home" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">About</a></li>
+		    <li><a id="menu-faq" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+                </ul>
+		<p class="navbar-right navbar-btn"><button id="newUser" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newuser.php'" type="button" class="btn btn-sm btn-primary">New User</button></p>
+		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/mainpage.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
             </div><!--/.nav-collapse -->
         </div> <!-- END nav container -->
     </nav>
@@ -121,9 +122,15 @@
         if ($_SESSION['bh_user_role'] == 4) {
             $passbutton = passwordResetWidget($_POST['edituser']);
         }
+
+	if ($_SESSION['bh_user_role'] == 4) {
+            $deletebutton = deleteUserWidget($_POST['edituser']);
+        }
+
         print "<table align='center'> <tr><td>";
         print $form;
-        print $passbutton;
+        print "</P></P>" . $passbutton;
+	print "</P></P>" . $deletebutton;
         print "</td></tr></table>";
     } elseif ($_POST['action'] == "updateUser") {
         // user edit has been submitted. handle it
@@ -146,8 +153,9 @@
             print "</td></tr></table>";
         }
     } elseif ($_POST['action'] == "resetPassword") {
+	print_r ($_SESSION);
         $json = json_encode($_POST) . "\n";
-        $respose = sendToProcessingEngine($json);
+        $response = sendToProcessingEngine($json);
         if (preg_match("/Success/", $response)) {
             $errFlag = 0;
             $errMsg = "Password Reset Successful";
@@ -158,7 +166,7 @@
             // reload the user edit form
             list($error, $form) = loadUserForm($_SESSION['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
             if ($_SESSION['bh_user_role'] == 4) {
-                $passbutton = passwordResetWidget($_POST['edituser']);
+                $passbutton = passwordResetWidget($_SESSION['edituser']);
             }
             print "<table align='center'> <tr><td>";
             print $form;
@@ -196,6 +204,32 @@
                 $errMsg = "There was a problem changing the password in the database";
             }
         }
+    } elseif ($_REQUEST['action'] == "deleteUser") {
+	$user_id = $POST['bh_user_id'];
+	$form  = "<form id='confirmDeleteUser' role='form' action='" .
+		 htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
+	$form .= "<input type='hidden' name='action' value='confirmDeleteUser' />\n";
+	$form .= "<input type='hidden' name='bh_user_id' value='". $_POST['bh_user_id'] ."' />\n";
+	$form .= "<input type='radio' name='confirm' value='1'> Yes </input><br>\n";
+	$form .= "<input type='radio' name='confirm' value='0'> No </input><br>\n";
+	$form .= "<button type='submit' class='btn btn-lg btn-danger'>Confirm Delete User</button></form>";
+        print "<table align='center'> <tr><td>";
+        print $form;
+        print "</td></tr></table>";
+    } elseif ($_REQUEST['action'] == "confirmDeleteUser"){
+	if ($_POST['confirm'] == 0) {
+	    goto listusers;
+	}
+	$json = json_encode($_POST) . "\n";
+        $response = sendToProcessingEngine($json);
+        if (preg_match("/Success/", $response)) {
+            $errFlag = 0;
+            $errMsg = "User Deleted";
+            goto listusers;
+        } else {
+            $errFlag = 1;
+            $errMsg = "There was a problem deleting the user: $response";
+        }	
     } else {
         listusers:
         // generate the list of current users
@@ -219,8 +253,6 @@
      print "managementFormInfo(".$errFlag.", \"".$errMsg."\");";
      ?>   
     </script>
-    
-
 </body>
 
 

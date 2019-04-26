@@ -45,35 +45,20 @@ function toggle_vis(id) {
 	e.style.display = 'block';
 }
 
+/* we use this to set a value indicating which page we are coming from 
+ * this ensures that the function called is appropriate for that page
+ * honestly, I'm not sure about this but I inherited this code and
+ * it's working at the moment
+*/
+
 function modalSetFormSrc(value){
     formSrc = value;
 }
 
+/* display the modal window */
 function modalMessage(type, messageBody){
     $(modalText[type]).html(messageBody);
     $(modalID[type]).modal('show');
-}
-
-function isoFormInfo(flag, msg){
-    if( formSrc == "isoForm" ){ //if data sent from this form
-        if(flag == 1){
-            modalMessage('error', msg);
-        }
-        else if(flag == 0){
-            modalMessage('success', "ISO generation form submitted.");
-        }
-    }
-}
-
-function isoListInfo(flag, msg){
-    if( formSrc == "isoList" ){ //if data sent from this form
-        if(flag == 1){
-            modalMessage('error', msg);
-        }
-        else if(flag == 0){
-            modalMessage('success', "");
-        }
-    }   
 }
 
 function managementFormInfo(flag, msg) {
@@ -82,6 +67,62 @@ function managementFormInfo(flag, msg) {
 	    modalMessage('success', msg);
 	}
 	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+function accountMgmtFormInfo(flag, msg) {
+    if (formSrc == "accountMgmt") {
+	if (flag == 0) {
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+/* when the users closes the modal window we want to go to the
+ * next appropriate page. so we find the appropriate button
+ * for that modal and change the button from it's default to 
+ * replacing the current window/url with the target.  
+ * the URL is set by the exception handlers on the main page
+*/
+function newUserFormInfo(flag, msg, url) {
+    if (formSrc == "newUser") {
+	var myBtn;
+	if (flag == 0) {
+	    myBtn = document.getElementById('success-close');
+	    myBtn.addEventListener('click', function(event) {
+		window.location.replace(url);
+	    });
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    myBtn = document.getElementById('error-close');
+	    myBtn.addEventListener('click', function(event) {
+		window.location.replace(url);
+	    });
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+/* same comment as the previous function (newUserFormInfo) */
+function changePassFormInfo(flag, msg, url) {
+    if (formSrc == "changePass") {
+	var myBtn;
+	if (flag == 0) {
+	    myBtn = document.getElementById('success-close');
+	    myBtn.addEventListener('click', function(event) {
+		window.location.replace(url);
+	    });
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    /* in this case an error just redisplays the same page */
+	    /* so no need to do a location.replace() */
 	    modalMessage('error', msg);
 	}
     }
@@ -115,21 +156,6 @@ function loginFormInfo(flag, msg){
             modalMessage('error', msg);
         }
         // no success message on login, just log user in.
-    }
-    
-}
-
-function signUpFormInfo(flag, msg){
-    if( formSrc == "signUp" ){ //if data sent from this form
-        if(flag == 1){
-            modalMessage('error', msg);
-        }
-        else if(flag == 0){
-            var notifyStr = "Your subscription request to TestRig2.0 has been received. Please allow 1 ";
-            notifyStr += "business day to process the request and receive approval notification.";
-            notifyStr += "Your SSH public key will be mailed to the supplied contact address shortly.";
-            modalMessage('success', notifyStr);
-        }
     }
     
 }

@@ -16,7 +16,11 @@ use JSON;
 use Switch;
 use DBI;
 use App::Genpass; # create random password 
-use MIME::Lite;
+use Email::Stuffer; # MIME::Lite has been deprecated
+use Email::Sender::Simple qw(sendmail);
+use Email::Simple;
+use Email::Simple::Creator;
+use Email::Send;
 # this is to ensure that the password
 # functions in the php side match what
 # we generate here
@@ -244,7 +248,7 @@ sub mainloop {
 		    print "About to process inbound request\n";
 		    my $status = processInboundRequests($child, $json);
 		    print "I got $status\n";
-		    print $child $status;
+		    print $child "$status\n";
 		} else {
 		    print $child "Invalid JSON\n";
 		}		       
@@ -304,12 +308,12 @@ sub processInboundRequests {
 	case /listexisting/ {
 	    #get a list of the existing blackhole routes from the DB
 	    my $listing = &listExistingBH("all"); #returns a json object
-	    return $listing . "\n";
+	    return $listing;
 	}
 	case /listactive/ {
 	    # get a list of only active BH routes from the DB
 	    my $listing = &listExistingBH("active"); #returns json
-	    return $listing . "\n";
+	    return $listing;
 	}
 	case /edit/ {
 	    # edit the route in the DB
@@ -328,6 +332,14 @@ sub processInboundRequests {
 	}
 	case /changePassword/ {
 	    my $status = &changePassword($json);
+	    return $status;
+	}
+	case /addUser/ {
+	    my $status = &addUser($json);
+	    return $status;
+	}
+	case /confirmDeleteUser/ {
+	    my $status = &deleteUser($json);
 	    return $status;
 	}
 	case /pushchanges/ {
@@ -356,7 +368,7 @@ sub listExistingBH {
     my $result_json;
     my @results;
     if ($dbh =~ /Err/) {
-	return "$dbh\n";
+	return "$dbh";
     }
     # prepare the query
     my $query = "SELECT * FROM bh_routes";
@@ -432,7 +444,7 @@ sub editRouteInDB {
     }
     $sth->finish();
     $dbh->disconnect();
-    return ("Success");
+    return "Success";
 }		 
 
 # get the incoming request and insert it in to the database
@@ -473,11 +485,6 @@ sub updateUser {
     my $role_active;
     my $dbh = &DBSocket();
     print "I have a socket!\n";
-    if ($json->{'user-role'}) {
-    }
-    if ($json->{'user-active'}) {
-	$role_active = "bh_user_active = :active,";
-    }
     my $query = "UPDATE bh_users 
 		 SET bh_user_name = ?,
                      bh_user_fname = ?,
@@ -528,9 +535,73 @@ sub updateUser {
 	$sth->finish();
     }
     $dbh->disconnect();
-    return ("Success\n");   
+    return "Success";   
 }
-		      
+
+# add a new user to the database
+sub addUser {
+    my $json = shift;
+    my $genpass = App::Genpass->new();
+    my $newPassword = $genpass->generate(1); #initial password for user
+    my $passhash = password_hash($newPassword, PASSWORD_BCRYPT);
+    my $dbh = &DBSocket();
+    print "I have a socket in addUser!\n";
+    print Dumper ($json);
+    my $query = "INSERT INTO bh_users 
+		        (bh_user_name, bh_user_fname, bh_user_lname, 
+                         bh_user_email, bh_user_affiliation, bh_user_role,
+                         bh_user_active, bh_user_pass, bh_user_community)
+		 VALUES 
+			(?,?,?,?,?,?,?,?,?)";		       
+    my $sth=$dbh->prepare($query);
+    $sth->bind_param(1, $json->{'user-username'});
+    $sth->bind_param(2, $json->{'user-fname'});
+    $sth->bind_param(3, $json->{'user-lname'});
+    $sth->bind_param(4, $json->{'user-email'});
+    $sth->bind_param(5, $json->{'user-affiliation'});
+    $sth->bind_param(6, $json->{'user-role'});
+    $sth->bind_param(7, $json->{'user-active'});
+    $sth->bind_param(8, $passhash);
+    $sth->bind_param(9, $json->{'user-community'});
+    $sth->execute();
+    if ($sth->err()) {
+	return $sth->errstr();
+    }
+    print "User added!\n";
+    $sth->finish();
+    $dbh->disconnect();
+    # the user exists in the database so lets let them know what their
+    # initial password is
+    print "About to send email\n";
+    
+    my $text  = "Hello, your new one time password for the Black Hole Service at 3ROX is\n";
+    $text .= "found below. You will need to change your password the next time you\n";
+    $text .= "log into the service.\n\n";
+    $text .= "Thank you,\n The BHS Team at 3ROX\n\n\n";
+    $text .= "One time password: $newPassword\n\n";
+    my $target_email = $json->{'user-email'};
+    my $email = Email::Simple->create(
+	header => [
+	    To      => $target_email,
+	    From    => '"BlackHole Sun Server" <blackholesun@psc.edu>',
+	    Subject => "Initial Password for Blackhole Sun at 3ROX",
+	],
+	body => $text,
+	);
+    my $sender = Email::Send->new(
+	{   mailer      => 'mailer1.psc.edu',
+	    mailer_args => [
+		port     => '465',
+		username => 'rapier',
+		password => 'IH8tftsm!',
+		]
+	}
+	);
+    eval { $sender->send($email) };
+    print "Sent mail\n";
+    return "Success";   
+}
+
 sub resetPassword {
     my $json = shift @_;
     my $genpass = App::Genpass->new();
@@ -551,19 +622,20 @@ sub resetPassword {
     }
     my @result = $sth->fetchrow_array();
     $sth->finish();
-    my $email = $result[0];
-    print "The email is $email\n";
+    my $target_email = $result[0];
+    print "The email is $target_email\n";
     # we have the email now update the password 
     my $passhash = password_hash($newPassword, PASSWORD_BCRYPT);
     $query = "UPDATE bh_users
-              SET bh_user_pass = ?
+              SET bh_user_pass = ?,
+		  bh_user_force_password = 1			       
 	      WHERE bh_user_id = ?";
     $sth = $dbh->prepare($query);
     $sth->bind_param(1, $passhash);
     $sth->bind_param(2, $json->{'bh_user_id'});
     $sth->execute();
     if ($sth->err()) {
-	return ($sth->errstr());
+	return $sth->errstr();
     }    
     print "Updated password in DB\n";
     # we have updated the password. Now send the new password to the user
@@ -572,28 +644,49 @@ sub resetPassword {
     $text .= "log into the service.\n\n";
     $text .= "Thank you,\n The BHS Team at 3ROX\n\n\n";
     $text .= "One time password: $newPassword\n\n";
-    my $msg = MIME::Lite->new (
-	From => "blackholesun\@psc.edu",
-	To   => $email,
-	CC   => "rapier\@psc.edu",
-	Subject => "Password reset for Black Hole Sun",
-	Data => $text
+    my $email = Email::Simple->create(
+	header => [
+	    To      => $target_email,
+	    From    => '"BlackHole Sun Server" <blackholesun@psc.edu>',
+	    Subject => "Initial Password for Blackhole Sun at 3ROX",
+	],
+	body => $text,
 	);
-    try {
-        $msg->send("sendmail", "/usr/sbin/sendmail -t -oi -oem", Timeout=>5, Debug=>1);
-    } catch {
-	return ("Failed to send email to user\n");
-    };
+    my $sender = Email::Send->new(
+	{   mailer      => 'mailer1.psc.edu',
+	    mailer_args => [
+		port     => '465',
+		username => 'rapier',
+		password => 'IH8tftsm!',
+		]
+	}
+	);
+    eval { $sender->send($email) };
+#    try {
+#	Email::Stuffer->from      ("blackholesun\@psc.edu")
+#	              ->to        ($email)
+#	              ->cc        ("rapier\@psc.edu")
+#	              ->subject   ("Password reset for Black Hole Sun")
+#	              ->text_body ($text)
+#	              ->send;
+#   } catch {
+#	return ("Failed to send email to user\n");
+#   };
     print "Supposedly sent the mail\n";
-    return ("Success\n");
+    return "Success";
 }
 
+# we set force_password to 0 because a user will only be changing their
+# password if it is already set to 0 or if they are doing an initial
+# password change which requires it to be set ot 0
 sub changePassword {
     my $json = shift @_;
     my $passhash = password_hash($json->{'npass1'}, PASSWORD_BCRYPT);
     my $dbh = &DBSocket();
+    # $dbh->trace(1); #enable tracing for debug purposes
     my $query = "UPDATE bh_users
-	      SET bh_user_pass = ?
+	      SET bh_user_pass = ?,
+                  bh_user_force_password = 0
 	      WHERE bh_user_id = ?";
     my $sth = $dbh->prepare($query);
     $sth->bind_param(1, $passhash);
@@ -602,7 +695,21 @@ sub changePassword {
     if ($sth->err()) {
 	return ($sth->errstr());
     }
-    return "Success\n";
+    return "Success";
+}
+
+sub deleteUser {
+    my $json = shift @_;
+    my $dbh = &DBSocket();
+    my $query = "DELETE FROM bh_users
+		 WHERE bh_user_id = ?";
+    my $sth = $dbh->prepare($query);
+    $sth->bind_param(1, $json->{'bh_user_id'});
+        $sth->execute();
+    if ($sth->err()) {
+	return ($sth->errstr());
+    }
+    return "Success";
 }
 
 &readConfig();
