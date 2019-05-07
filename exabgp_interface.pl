@@ -55,7 +55,7 @@ use IO::Scalar; #used to capture STDOUT to buffer
 
 my %options = ();
 my $config = Config::Tiny->new();
-my $cfg_path = "./private/exabgp_interface.cfg";
+my $cfg_path = "./exabgp_interface.cfg";
 
 sub readConfig {
     if (! -e $cfg_path) {
@@ -163,14 +163,20 @@ sub authorize {
 sub processInput {
     my $socket = shift;
     my $response = shift;
-#    if ($response =~ /ls/) {
-	my $data;
-	tie *STDOUT, 'IO::Scalar', \$data;
-	print "Hello there\n";
-	untie *STDOUT;
-	print $socket $data;
-#    }
-#    print $socket "in process request: $response\n";
+    my $data;
+    tie *STDOUT, 'IO::Scalar', \$data;
+    # the template for each blackhole route configuration in the config
+    # file in the format of template_n so step through each and replace
+    # the route keyword with the route to blackhole
+    for (my $i = 1; $i <= $config->{'template'}->{'template_total'}; $i++) {
+	my $templateNum = "template" . $i;
+	my $template = $config->{'template'}->{$templateNum};
+	$template ~= s/_route_/$response/;
+	# we just print to STDOUT to send it to the ExaBGP process
+	print $template ."\n";
+    }
+    untie *STDOUT;
+    print $socket $data;
 }
 
 sub startServer {

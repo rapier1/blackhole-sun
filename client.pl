@@ -29,7 +29,7 @@ use PHP::Functions::Password qw(:all);;
 
 my %options = ();
 my $config = Config::Tiny->new();
-my $cfg_path = "./private/client.cfg";
+my $cfg_path = "./client.cfg";
 
 sub readConfig {
     if (! -e $cfg_path) {
@@ -368,7 +368,9 @@ sub listExistingBH {
     my $result_json;
     my @results;
     if ($dbh =~ /Err/) {
-	return "$dbh";
+	my $error = $dbh;
+	$dbh->disconnect();
+	return ($error);
     }
     # prepare the query
     my $query = "SELECT * FROM bh_routes";
@@ -410,14 +412,14 @@ sub blackHole {
     my $status; # this is what we get back from the exabgp interface
 
     # I don't know the EXABGP format yet but in the meantime we'll fake it
-    my $request = $json->{'bh_route'} . " " . $json->{'bh_lifespan'} .
-	" " . $json->{'bh_community'};
-    
+    #my $request = $json->{'bh_route'} . " " . $json->{'bh_lifespan'} .
+    #	" " . $json->{'bh_community'};
+    my $request = "hello there!";
     print $socket $request . "\n";
 
     $socket->read($status,4096);
     $status = "Got to blackhole subroutine: $status";
-    
+    print "$status";
     return $status;
 }    
 
@@ -440,7 +442,10 @@ sub editRouteInDB {
     $sth->bind_param(5, $json->{'bh_index'});
     $sth->execute();
     if ($sth->err()) {
-	return $sth->errstr();
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }
     $sth->finish();
     $dbh->disconnect();
@@ -502,7 +507,10 @@ sub updateUser {
     $sth->bind_param(6, $json->{'bh_user_id'});
     $sth->execute();
     if ($sth->err()) {
-	return $sth->errstr();
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }
     $sth->finish();
     # we need to do the active and role as seperate queries because
@@ -517,7 +525,10 @@ sub updateUser {
 	$sth->bind_param(2, $json->{'bh_user_id'});
 	$sth->execute();
 	if ($sth->err()) {
-	    return $sth->errstr();
+	    my $error = $sth->errstr();
+	    $sth->finish();
+	    $dbh->disconnect();
+	    return ($error);
 	}
 	$sth->finish();
     }
@@ -530,7 +541,10 @@ sub updateUser {
 	$sth->bind_param(2, $json->{'bh_user_id'});
 	$sth->execute();
 	if ($sth->err()) {
-	    return $sth->errstr();
+	    my $error = $sth->errstr();
+	    $sth->finish();
+	    $dbh->disconnect();
+	    return ($error);
 	}
 	$sth->finish();
     }
@@ -565,7 +579,10 @@ sub addUser {
     $sth->bind_param(9, $json->{'user-community'});
     $sth->execute();
     if ($sth->err()) {
-	return $sth->errstr();
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }
     print "User added!\n";
     $sth->finish();
@@ -615,9 +632,14 @@ sub resetPassword {
     $sth->bind_param(1, $json->{'bh_user_id'});
     $sth->execute();
     if ($sth->err()) {
-	return $sth->errstr();
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }    
     if ($sth->rows != 1) {
+	$sth->finish();
+	$dbh->disconnect();
 	return "No results for this user id";
     }
     my @result = $sth->fetchrow_array();
@@ -635,8 +657,13 @@ sub resetPassword {
     $sth->bind_param(2, $json->{'bh_user_id'});
     $sth->execute();
     if ($sth->err()) {
-	return $sth->errstr();
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }    
+    $sth->finish();
+    $dbh->disconnect();    
     print "Updated password in DB\n";
     # we have updated the password. Now send the new password to the user
     my $text  = "Hello, your new one time password for the Black Hole Service at 3ROX is\n";
@@ -693,8 +720,13 @@ sub changePassword {
     $sth->bind_param(2, $json->{'bh_user_id'});
     $sth->execute();
     if ($sth->err()) {
-	return ($sth->errstr());
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }
+    $sth->finish();
+    $dbh->disconnect();
     return "Success";
 }
 
@@ -705,14 +737,65 @@ sub deleteUser {
 		 WHERE bh_user_id = ?";
     my $sth = $dbh->prepare($query);
     $sth->bind_param(1, $json->{'bh_user_id'});
-        $sth->execute();
+    $sth->execute();
     if ($sth->err()) {
-	return ($sth->errstr());
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
     }
+    $sth->finish();
+    $dbh->disconnect();
     return "Success";
+}
+
+sub updateloop {
+    # loop forever!
+    my $pid = fork();
+    if ($pid == 0) {
+	my $dbh = &DBSocket;
+	# this query finds all of the active routes where the difference
+	# between the start time and the current time is greater than the
+	# desired life of the route
+	my $query = "SELECT (timestampdiff(hour, bh_starttime, current_timestamp()) > bh_lifespan), 
+					       bh_index 
+					       FROM   bh_routes 
+					       WHERE  bh_active=1";
+	my $sth = $dbh->prepare($query);
+	while (1) {
+	    #every minute find any routes that have expired
+	    $sth->execute();
+	    if ($sth->err()) {
+		#need to write this to a log
+		print "Error in updateloop: $sth->errstr()";
+	    }
+	    while (my $result = $sth->fetchrow_hashref()) {
+		my $updateQuery = "UPDATE bh_routes
+					       SET    bh_active=0
+					       WHERE  bh_index = ?";
+		my $updatesth = $dbh->prepare($updateQuery);
+		$updatesth->bind_param(1, $result->{'bh_index'});
+		$updatesth->execute();
+		if ($updatesth->err()) {
+		    #need to write this to a log
+		    print "Error in updateloop: $updatesth->error()";
+		}
+		# we now have to fire off something to exaBGP to tell it to
+		# eliminate those routes
+	    }   
+	    sleep 60;
+	}
+	exit(0);
+    }
+    return;
 }
 
 &readConfig();
 &validateConfig();
 my $server = &instantiateServer(); #get the server socket
-&mainloop ($server);
+# we need a loop that will ,every minute or so, query the db
+# to update any route information in terms of the routes expiring.
+#&updateloop();
+#&mainloop ($server);
+my $foo->{'action'} = "blackhole";
+&processInboundRequests("this is a test", $foo);
