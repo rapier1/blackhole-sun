@@ -183,7 +183,9 @@ sub processInput {
     # the template for each blackhole route configuration in the config
     # file in the format of template_n so step through each and replace
     # the route keyword with the route to blackhole
-    for (my $i = 1; $i <= $config->{'template'}->{'template_total'}; $i++) {
+    $logger->debug("In processInput and response is $response");
+    $logger->debug("also we have $config->{template}->{total_templates} templates");
+    for (my $i = 1; $i <= $config->{'template'}->{'total_templates'}; $i++) {
 	my $templateNum = "template" . $i;
 	my $template = $config->{'template'}->{$templateNum};
 	$template =~ s/_route_/$response/;
