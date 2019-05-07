@@ -29,7 +29,7 @@ use PHP::Functions::Password qw(:all);;
 
 my %options = ();
 my $config = Config::Tiny->new();
-my $cfg_path = "./client.cfg";
+my $cfg_path = "/usr/local/etc/client.cfg";
 
 sub readConfig {
     if (! -e $cfg_path) {

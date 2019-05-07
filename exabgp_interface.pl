@@ -52,20 +52,25 @@ use Config::Tiny;
 use Getopt::Std;
 use Data::Dumper;
 use IO::Scalar; #used to capture STDOUT to buffer
+use Log::Log4perl;
 
 my %options = ();
 my $config = Config::Tiny->new();
-my $cfg_path = "./exabgp_interface.cfg";
+my $cfg_path = "/usr/local/etc/exabgp_interface.cfg";
+Log::Log4perl::init('/usr/local/etc/bhs-log4perl.conf');
+my $logger = Log::Log4perl->get_logger('logger');
 
 sub readConfig {
     if (! -e $cfg_path) {
         print STDERR "Config file not found at $cfg_path. Exiting.\n";
+	$logger->error("Config file not found at $cfg_path. Exiting.");
         exit;
     } else {
         $config = Config::Tiny->read($cfg_path);
         my $error = $config->errstr();
         if ($error ne "") {
             print STDERR "Error: $error. Exiting.\n";
+	    $logger->error("Error: $error. Exiting");
             exit;
         }
     }
@@ -77,17 +82,23 @@ sub validateConfig {
 #check db data
     if (! defined $config->{'keys'}->{'server_private_rsa'}) {
         print STDERR "Missing DB host infomation in config file. Exiting\n";
+	$logger->error("Missing DB host infomation in config file. Exiting");
         exit;
     }
     if (! defined $config->{'keys'}->{'client_public_rsa'}) {
         print STDERR "Missing DB password infomation in config file. Exiting\n";
+	$logger->error("Missing DB password infomation in config file. Exiting");
         exit;
     }
     if (! -e $config->{'keys'}->{'server_private_rsa'}) {
 	print STDERR "The server's private RSA file is missing or not readable. Exiting.\n";
+	$logger->error("The server's private RSA file is missing or not readable. Exiting.");
+        exit;
     }
     if (! -e $config->{'keys'}->{'client_public_rsa'}) {
 	print STDERR "The client's public RSA file is missing or not readable. Exiting.\n";
+	$logger->error("The client's public RSA file is missing or not readable. Exiting.");
+        exit;
     }
 }
 
@@ -146,17 +157,21 @@ sub authorize {
     my $rsapub = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'});
     if (! $rsapub->verify_message($clientsig, $dhpublic_cli)) {
 	print $socket "RSA Verification Failed\n";
+	$logger->warn("RSA verifivation failed");
     }
 
     $dhpublic_cli = Crypt::PK::DH->new(\$dhpublic_cli);
     #compute shared secret
     my $srvsecret = dh_shared_secret($dhprivate_srv, $dhpublic_cli);
     print "ST Checking secrets\n";
+    $logger->debug("Checking Secrets");
     if ($srvsecret eq $clientsecret) {
 	$authorized = 1;
 	print $socket "Authorized\n";
     }
 
+    $logger->info("Client authorized");
+    
     return $authorized;
 }
 
@@ -171,9 +186,10 @@ sub processInput {
     for (my $i = 1; $i <= $config->{'template'}->{'template_total'}; $i++) {
 	my $templateNum = "template" . $i;
 	my $template = $config->{'template'}->{$templateNum};
-	$template ~= s/_route_/$response/;
+	$template =~ s/_route_/$response/;
 	# we just print to STDOUT to send it to the ExaBGP process
 	print $template ."\n";
+	$logger->debug("sending $template to ExaBGP")
     }
     untie *STDOUT;
     print $socket $data;
@@ -191,12 +207,14 @@ sub startServer {
 	);
     die "Socket could not be created. Reason: $!\n" unless ($server);
 
+    $logger->info("Server started");
     my $child;
     while (1) {
 	while ($child = $server->accept()) {
 	    my $pid = fork();
 	    if (! defined ($pid)) {
 		print STDERR "Cannot fork child: $!\n";
+		$logger->error("Cannot fork child: $!");
 		close ($child);
 	    }
 	    IO::Socket::Timeout->enable_timeouts_on($child);
@@ -208,6 +226,7 @@ sub startServer {
 		    $authorized = &authorize($child);
 		} else {
 		    print $child "Bad auth request\n";
+		    $logger->warn("Bad auth request");
 		    #if the first request from the client isn't to
 		    #authorize then close the client out
 		}		    
@@ -224,6 +243,7 @@ sub startServer {
 		    exit(0); # Child process exits when it is done.
 		} else {
 		    print $child "Authorization failure\n";
+		    $logger->warn("Authorization failure");
 		    close ($child);
 		}
 	    } # else 'tis the parent process, which goes back to accept()
