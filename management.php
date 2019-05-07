@@ -28,20 +28,21 @@
 <!DOCTYPE html>
 <head>
     <?php
+    include("./trfunctions.php");
+    include("./functions.php");
     session_start();
     if (empty($_SESSION["username"]))
     {
-        header("Location: https://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
+        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
         die();
     }
+    sessionTimer();
     if ($_SESSION["bh_user_role"] != 4)
         // they don't have appropriate access priveliges. Bounce them to the main page
     {
-        header("Location: https://". $_SERVER['SERVER_NAME']. "/blackholesun/mainpage.php");
+        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/mainpage.php");
         die();
     }
-    include("./trfunctions.php");
-    include("./functions.php");
     ?>
 
     <meta charset="UTF-8">
@@ -89,23 +90,16 @@
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-
-                <a class="navbar-brand" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">BlackHole Sun; an EXABGP Interface</a>
-                <a class="navbar-brand" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php">Logout</a>
+                <div class="navbar-brand">BlackHole Sun</div>
             </div>
             <div id="navbar" class="collapse navbar-collapse">
                 <ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">About</a></li>
-		    <li><a id="menu-faq" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
+		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
 		<p class="navbar-right navbar-btn"><button id="newUser" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newuser.php'" type="button" class="btn btn-sm btn-primary">New User</button></p>
 		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/mainpage.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
+		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'" type="button" class="btn btn-sm btn-primary">Logout</button></p>
             </div><!--/.nav-collapse -->
         </div> <!-- END nav container -->
     </nav>

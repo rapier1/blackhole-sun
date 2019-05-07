@@ -80,12 +80,12 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-		<!-- -                 <a class="navbar-brand" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">BlackHole Sun; an EXABGP Interface</a> -->
+		<div class="navbar-brand">BlackHole Sun</div>
             </div>
             <div id="navbar" class="collapse navbar-collapse">
                 <ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">About</a></li>
-		    <li><a id="menu-faq" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
+		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/mainpage.php'"  type="button" class="btn btn-sm btn-primary">Routes</button></p>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"  type="button" class="btn btn-sm btn-primary">Logout</button></p>

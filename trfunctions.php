@@ -134,6 +134,7 @@ function logIn($username, $password)
             $_SESSION["fname"] = $queryResult["bh_user_fname"];
             $_SESSION["lname"] = $queryResult["bh_user_lname"];
             $_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
+	    $_SESSION["timer"]= time();
             if ($queryResult["bh_user_force_password"]) {
                 header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/changepass.php");    
             } elseif ($queryResult["bh_user_role"] == 4) {
@@ -147,28 +148,32 @@ function logIn($username, $password)
     }
 }//END logIn
 
-function generateUserInfo() 
-{ 
-    //we could populate this more. With what, idk yet -N
-    $welcomeMessage = "Greetings, ". $_SESSION["username"]."!";
-    $assocStr = $_SESSION["inst_name"] . " Test Rig";
-    $welcomeDiv = '<div id="welcomeDiv">'. $welcomeMessage . '<br>'
-		. $assocStr . '</div>';
-    
-    return $welcomeDiv;
-    
-}//END generateUserInfo()
+
+// time the user out after a certain period of inactivity. 
+function sessionTimer() {
+    $login_session_duration = 10*60; // ten minutes of inactivity 
+    $current_time = time(); 
+    if(isset($_SESSION['timer'])){  
+	if(((time() - $_SESSION['timer']) > $login_session_duration)){ 
+	    header("Location:http://". $_SERVER['SERVER_NAME'] . "/blackholesun/timeout.php");
+	}
+	// update the time
+	$_SESSION["timer"] = time();
+	return;
+    }
+    // Somehow the session time isn't set at all. Bounce them to the timeout page anyway
+    header("Location:http://". $_SERVER['SERVER_NAME'] . "/blackholesun/timeout.php");
+}
+
+
 
 function logOut()
 {
-
     unset($_SESSION["username"]);
     unset($_SESSION["CID"]);
     unset($_SESSION["UID"]);
     session_unset();
     session_destroy();
-    header("Location: http://". $_SERVER['SERVER_NAME']. "/index.php");
-    die();
 }//END logOut()
 
 function getDatabaseHandle () {

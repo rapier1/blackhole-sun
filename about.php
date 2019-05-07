@@ -26,24 +26,6 @@
 ?>
 <!DOCTYPE html>
 <head>
-    <?php
-    session_start();
-    include("./trfunctions.php");
-    include("./functions.php");
-    if (empty($_SESSION["username"]))
-    {
-        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
-        die();
-    }
-    sessionTimer();
-    if ($_SESSION["bh_user_role"] != 4)
-        // they don't have appropriate access priveliges. Bounce them to the main page
-    {
-        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/mainpage.php");
-        die();
-    }
-    ?>
-
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -74,17 +56,9 @@
 </head>
 
 <body>
-    <?php include ("./modals.php"); ?>
-    
     <nav class="navbar navbar-inverse navbar-fixed-top">
 	<div class="container">
 	    <div class="navbar-header">
-		<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-		    <span class="sr-only">Toggle navigation</span>
-		    <span class="icon-bar"></span>
-		    <span class="icon-bar"></span>
-		    <span class="icon-bar"></span>
-		</button>
 		<div class="navbar-brand">BlackHole Sun</div>
 	    </div> <!--navbar-header -->
 	    <div id="navbar" class="collapse navbar-collapse">
@@ -92,44 +66,14 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
 		</ul>
-		<p class="navbar-right navbar-btn"><button id="newUser" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/management.php'" type="button" class="btn btn-sm btn-primary">Management</button></p>
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
     </nav>
-    
-    <?php
-    $errFlag="";
-    $errMsg="";
-    $url = "";
-    if ($_POST['action'] == "addUser") {
-	$json = json_encode($_POST);
-	$response = sendToProcessingEngine($json);
-	print "response is $response";
-	if (preg_match("/Success/", $response)) {
-	    $url =  "/blackholesun/management.php";
-            $errFlag = 0;
-            $errMsg = "New User Successfully Added. Initial Password Sent.";
-	} else {
-	    $url =  "/blackholesun/newuser.php";
-            $errFlag = 1;
-            $errMsg = "Failed to add user: $response";
-	}
-    }
-    $form = newUserForm();
-    print "<table align='center'><tr><td>";
-    print $form;
-    print "</td></tr></table>";      
-    ?>
-    
-    <!-- modals handler -->
-
-    <script>
-     <?php
-     // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doing here is using php to write javascript. 
-     // dirty!
-     print "modalSetFormSrc(\"newUser\");\n";
-     print "newUserFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
-     ?>   
-    </script>
+    <table align="center" width="50%">
+	<tr>
+	    <td><br><br><br>
+            Here we will have text describing BlackHole Sun
+	    </td>
+	</tr>
+    </table>
 </body>

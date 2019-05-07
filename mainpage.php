@@ -42,16 +42,16 @@
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">                                                              
     <!-- Bootstrap core CSS -->
-         <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-         <link href="bootstrap/assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+    <link href="bootstrap/assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
     <!-- Custom styles for this template -->
-         <link href="trstylesheet.css" rel="stylesheet">
+    <link href="trstylesheet.css" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-         <!--[if lt IE 9]>
-             <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-             <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-         <![endif]-->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
 
     <!-- load jquery -->
     <script type="text/javascript" src="./jquery/jquery.min.js"></script>
@@ -59,14 +59,14 @@
     <script type="text/javascript" src="./jquery/jquery.tabledit.js"></script>
 
     <?php
-         session_start();
-         if (empty($_SESSION["username"]))
-         {
-             header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
-             die();
-         }
-         include("./trfunctions.php");
-         include("./functions.php");
+    session_start();
+    if (empty($_SESSION["username"]))
+    {
+        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
+        die();
+    }
+    include("./trfunctions.php");
+    include("./functions.php");
     ?>
 </head>
 
@@ -74,19 +74,12 @@
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">BlackHole Sun; an EXABGP Interface</a>
-                <a class="navbar-brand" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php">Logout</a>
+		<div class="navbar-brand">BlackHole Sun</div>
             </div>
             <div id="navbar" class="collapse navbar-collapse">
                 <ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/index.php">About</a></li>
-		    <li><a id="menu-faq" href="https://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
+		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/accountmgmt.php'"  type="button" class="btn btn-sm btn-primary">Account</button></p>
 		<?php
@@ -231,7 +224,7 @@
 	    });
 	});        
 	</script>
-	<table id="bhTable" class="display" width="100%" cellspacing="0">
+	<table id="bhTable" class="display" width="80%" align="center" cellspacing="0">
 	<thead>
         <tr>
         <th>Index</th>

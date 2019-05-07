@@ -13,16 +13,6 @@ $args = array (
     'bh_lifespan' => FILTER_VALIDATE_INT,
     'bh_index' => FILTER_VALIDATE_INT
 );
-/*
-$test = array (
-          'bh_lifespan' => 96,
-          'action' => 'edit',
-          'bh_community' => 'Monkeybutters',
-          'bh_route' => '1.2.3.4/24 0.0.0.0',
-          'bh_index' => 1,
-          'bh_active' => 0
-);
-*/
 
 $input = filter_input_array(INPUT_POST, $args);
 
