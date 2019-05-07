@@ -163,14 +163,11 @@ sub authorize {
 sub processInput {
     my $socket = shift;
     my $response = shift;
-#    if ($response =~ /ls/) {
-	my $data;
-	tie *STDOUT, 'IO::Scalar', \$data;
-	print "Hello there\n";
-	untie *STDOUT;
-	print $socket $data;
-#    }
-#    print $socket "in process request: $response\n";
+    my $data;
+    tie *STDOUT, 'IO::Scalar', \$data;
+    print "$response\n";
+    untie *STDOUT;
+    print $socket $data;
 }
 
 sub startServer {
