@@ -62,14 +62,12 @@ my $logger = Log::Log4perl->get_logger('logger');
 
 sub readConfig {
     if (! -e $cfg_path) {
-        print STDERR "Config file not found at $cfg_path. Exiting.\n";
 	$logger->error("Config file not found at $cfg_path. Exiting.");
         exit;
     } else {
         $config = Config::Tiny->read($cfg_path);
         my $error = $config->errstr();
         if ($error ne "") {
-            print STDERR "Error: $error. Exiting.\n";
 	    $logger->error("Error: $error. Exiting");
             exit;
         }
@@ -101,10 +99,6 @@ sub validateConfig {
         exit;
     }
 }
-
-
-# open the connection to $self->log
-#openlog("$$", "pid,nowait", "local0");
 
 sub authorize {
     # get the client socket
@@ -163,7 +157,6 @@ sub authorize {
     $dhpublic_cli = Crypt::PK::DH->new(\$dhpublic_cli);
     #compute shared secret
     my $srvsecret = dh_shared_secret($dhprivate_srv, $dhpublic_cli);
-    print "ST Checking secrets\n";
     $logger->debug("Checking Secrets");
     if ($srvsecret eq $clientsecret) {
 	$authorized = 1;
@@ -186,11 +179,13 @@ sub processInput {
     $logger->debug("In processInput and response is $response");
     $logger->debug("also we have $config->{template}->{total_templates} templates");
     for (my $i = 1; $i <= $config->{'template'}->{'total_templates'}; $i++) {
-	my $templateNum = "template" . $i;
+	my $templateNum = "template_" . $i;
 	my $template = $config->{'template'}->{$templateNum};
+	$logger->debug("template is $template for $templateNum");
 	$template =~ s/_route_/$response/;
+	$logger->debug("Transformed template is $template");
 	# we just print to STDOUT to send it to the ExaBGP process
-	print $template ."\n";
+	print STDOUT $template ."\n";
 	$logger->debug("sending $template to ExaBGP")
     }
     untie *STDOUT;
@@ -215,7 +210,6 @@ sub startServer {
 	while ($child = $server->accept()) {
 	    my $pid = fork();
 	    if (! defined ($pid)) {
-		print STDERR "Cannot fork child: $!\n";
 		$logger->error("Cannot fork child: $!");
 		close ($child);
 	    }
@@ -227,7 +221,6 @@ sub startServer {
 		if ($response =~ /auth/i) {
 		    $authorized = &authorize($child);
 		} else {
-		    print $child "Bad auth request\n";
 		    $logger->warn("Bad auth request");
 		    #if the first request from the client isn't to
 		    #authorize then close the client out
