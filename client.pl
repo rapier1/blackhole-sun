@@ -795,7 +795,7 @@ sub updateloop {
 my $server = &instantiateServer(); #get the server socket
 # we need a loop that will ,every minute or so, query the db
 # to update any route information in terms of the routes expiring.
-#&updateloop();
-#&mainloop ($server);
-my $foo->{'action'} = "blackhole";
-&processInboundRequests("this is a test", $foo);
+&updateloop();
+&mainloop ($server);
+#my $foo->{'action'} = "blackhole";
+#&processInboundRequests("this is a test", $foo);

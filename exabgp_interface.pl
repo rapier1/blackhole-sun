@@ -180,7 +180,7 @@ sub processInput {
     $logger->debug("also we have $config->{template}->{total_templates} templates");
     for (my $i = 1; $i <= $config->{'template'}->{'total_templates'}; $i++) {
 	my $templateNum = "template_" . $i;
-	my $template = $config->{'template'}->{$templateNum};
+	my $template = $config->{'templates'}->{$templateNum};
 	$logger->debug("template is $template for $templateNum");
 	$template =~ s/_route_/$response/;
 	$logger->debug("Transformed template is $template");
