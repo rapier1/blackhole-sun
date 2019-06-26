@@ -411,9 +411,6 @@ sub blackHole {
     my $json = shift; # the blackhole request structure
     my $status; # this is what we get back from the exabgp interface
 
-    # I don't know the EXABGP format yet but in the meantime we'll fake it
-    #my $request = $json->{'bh_route'} . " " . $json->{'bh_lifespan'} .
-    #	" " . $json->{'bh_community'};
     my $request = "hello there!";
     print $socket $request . "\n";
 
@@ -430,16 +427,14 @@ sub editRouteInDB {
     my $query = "UPDATE bh_routes
                  SET bh_route = ?,
                      bh_lifespan = ?,
-		     bh_community = ?,
                      bh_active = ?
                  WHERE 
 		     bh_index = ?";
     my $sth=$dbh->prepare($query);
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
-    $sth->bind_param(3, $json->{'bh_community'});
-    $sth->bind_param(4, $json->{'bh_active'});
-    $sth->bind_param(5, $json->{'bh_index'});
+    $sth->bind_param(3, $json->{'bh_active'});
+    $sth->bind_param(4, $json->{'bh_index'});
     $sth->execute();
     if ($sth->err()) {
 	my $error = $sth->errstr();
@@ -464,17 +459,15 @@ sub addRouteToDB {
 			     (bh_route,
 			      bh_lifespan,
 			      bh_starttime,
-			      bh_community,
 			      bh_requestor,
 			      bh_active)
                         VALUES
-			     (?,?,?,?,?,1);";
+			     (?,?,?,?,1);";
     my $sth = $dbh->prepare($query);
     my $datetime = $json->{'bh_startdate'} . " " . $json->{'bh_starttime'};
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
     $sth->bind_param(3, $datetime);
-    $sth->bind_param(4, $json->{'bh_community'});
     $sth->bind_param(5, "rapier");
     $sth->execute();
     #need error checking 
@@ -564,9 +557,9 @@ sub addUser {
     my $query = "INSERT INTO bh_users 
 		        (bh_user_name, bh_user_fname, bh_user_lname, 
                          bh_user_email, bh_user_affiliation, bh_user_role,
-                         bh_user_active, bh_user_pass, bh_user_community)
+                         bh_user_active, bh_user_pass)
 		 VALUES 
-			(?,?,?,?,?,?,?,?,?)";		       
+			(?,?,?,?,?,?,?,?)";		       
     my $sth=$dbh->prepare($query);
     $sth->bind_param(1, $json->{'user-username'});
     $sth->bind_param(2, $json->{'user-fname'});
@@ -576,7 +569,6 @@ sub addUser {
     $sth->bind_param(6, $json->{'user-role'});
     $sth->bind_param(7, $json->{'user-active'});
     $sth->bind_param(8, $passhash);
-    $sth->bind_param(9, $json->{'user-community'});
     $sth->execute();
     if ($sth->err()) {
 	my $error = $sth->errstr();

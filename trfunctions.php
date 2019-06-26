@@ -96,16 +96,15 @@ function logIn($username, $password)
 {
     //Create our Database Handler, $dbh
     $dbh = getDatabaseHandle();
-    $stmnt = $dbh->prepare('SELECT bh_user_pass, 
+    $stmnt = $dbh->prepare("SELECT bh_user_pass, 
                                    bh_user_active, 
-                                   bh_user_community, 
                                    bh_user_role, 
                                    bh_user_fname, 
                                    bh_user_lname, 
                                    bh_user_id,
                                    bh_user_force_password
 		            FROM bh_users
-			    WHERE bh_user_name = :username');
+			    WHERE bh_user_name = :username");
     $stmnt->bindParam(':username', $username, PDO::PARAM_STR);
     try {
 	$stmnt->execute();
@@ -129,7 +128,6 @@ function logIn($username, $password)
         {
             //load relevant user info into the current session
             $_SESSION["username"] = $username;
-            $_SESSION["bh_user_community"] = $queryResult["bh_user_community"];
             $_SESSION["bh_user_role"] = $queryResult["bh_user_role"];
             $_SESSION["fname"] = $queryResult["bh_user_fname"];
             $_SESSION["lname"] = $queryResult["bh_user_lname"];
@@ -212,7 +210,6 @@ function listUsers()
                      bh_user_lname,
                      bh_user_email,
                      bh_user_affiliation,
-                     bh_user_community,
                      bh_user_role,
                      bh_user_active
               FROM bh_users";
@@ -278,7 +275,6 @@ function newUserForm () {
     $form .= "<div class='form-group'><label for='user-lname'> Last name:</label><input type='text' name='user-lname' class='form-control' value='' required></div>\n";
     $form .= "<div class='form-group'><label for='user-email'> Email:</label><input type='text' name='user-email' class='form-control' value='' required></div>\n";
     $form .= "<div class='form-group'><label for='user-affiliation'> Affiliation:</label><input type='text' name='user-affiliation' class='form-control' value='' required></div>\n";
-    $form .= "<div class='form-group'><label for='user-community'> Community:</label><input type='text' name='user-community' class='form-control' value='' required></div>\n";
     $form .= "<div class='form-group'>
                         <label for='user-role'>Role:</label>
                         <div class='form-control'>
@@ -320,7 +316,6 @@ function loadUserForm ($user_id, $user_class, $user_id_session)
                      bh_user_lname,
                      bh_user_email,
                      bh_user_affiliation,
-                     bh_user_community,
                      bh_user_role,
                      bh_user_active
               FROM bh_users

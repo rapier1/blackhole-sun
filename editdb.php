@@ -6,7 +6,6 @@ include("./trfunctions.php");
 include("./functions.php");
 header('Content-Type: application/json');
 $args = array (
-    'bh_community' => FILTER_SANITIZE_STRING,
     'bh_route' => FILTER_SANITIZE_STRING,
     'action' => FILTER_SANITIZE_STRING,
     'bh_active' => FILTER_VALIDATE_INT,
