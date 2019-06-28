@@ -15,6 +15,8 @@ use Data::Dumper;
 use JSON;
 use Switch;
 use DBI;
+use Net::Netmask;
+use Scalar::Util qw(looks_like_number);
 use App::Genpass; # create random password 
 use Email::Stuffer; # MIME::Lite has been deprecated
 use Email::Sender::Simple qw(sendmail);
@@ -100,6 +102,13 @@ sub validateConfig {
     if (! defined $config->{'database'}->{'password'}) {
 	print "Database password not defined. Exiting.\n";
 	exit;
+    }
+    # check the duration mix/max for bh requests
+    if (! defined $config->{'duration'}->{'min'}) {
+	$config->{'duration'}->{'min'} = 0;
+    }
+    if (! defined $config->{'duration'}->{'max'}) {
+	$config->{'duration'}->{'max'} = 2160;
     }
 }
 
@@ -275,6 +284,25 @@ sub validateJson {
     return $text;
 }
 
+sub validateBHInput {
+    my $json = shift;
+    my $block = Net::Netmask->new2($json->{bh_route});
+    if (!$block) {
+	#invalid ip address
+	return -1;
+    }
+    # verify that duration is a number greater than the configured
+    # min and max (0 and 2160 by default)
+    if (!looks_like_number($json->{bh_lifespan})) {
+	return -2;
+    }
+    if ($json->{bh_lifespan} <  $config->{'duration'}->{'min'}
+	|| $json->{bh_lifespan} > $config->{'duration'}->{'max'}) {
+	return -3;
+    }
+    return 1;
+}
+
 # handle the incoming requests from the inbound client here
 # these requests are in valid json format
 sub processInboundRequests {
@@ -290,9 +318,16 @@ sub processInboundRequests {
 	    return;
 	}	    
 	case /blackhole/i {
-	    my $status = senndtoExaBgpInt ($child, $json, "add");
+	    # verify if the IP address/mask is valid. 
+	    # note date and time is validated at user input
+	    my $valid = validateBHInput($json);
+	    if ($valid != 1) {
+		return $valid;
+	    }
 
-	    #add route to DB
+	    my $status = senndtoExaBgpInt ($child, $json, "add");
+	    # add route to the database
+
 	    my $db_stat = &addRouteToDB($json);
 	    return $status;
 	}
@@ -454,25 +489,39 @@ sub blackHole {
 
 sub editRouteInDB {
     my $json = shift @_;
+    print "about to edit route in DB";
+
+    # if for some reason we don't have a valid bh_index
+    # and it is equal to NULL then the update fails
+    if (! defined $json->{'bh_index'}) {
+	return -4;
+    }
+    
+    #validate the route and duration
+    my $valid = validateBHInput($json);
+    if ($valid != 1) {
+	return $valid;
+    }
+
+    # get a socket to the database
     my $dbh = &DBSocket();
     my $query = "UPDATE bh_routes
                  SET bh_route = ?,
                      bh_lifespan = ?,
-		     bh_community = ?,
                      bh_active = ?
                  WHERE 
 		     bh_index = ?";
     my $sth=$dbh->prepare($query);
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
-    $sth->bind_param(3, $json->{'bh_community'});
-    $sth->bind_param(4, $json->{'bh_active'});
-    $sth->bind_param(5, $json->{'bh_index'});
+    $sth->bind_param(3, $json->{'bh_active'});
+    $sth->bind_param(4, $json->{'bh_index'});
     $sth->execute();
     if ($sth->err()) {
 	my $error = $sth->errstr();
 	$sth->finish();
 	$dbh->disconnect();
+	print "$error\n";
 	return ($error);
     }
     $sth->finish();
@@ -492,17 +541,15 @@ sub addRouteToDB {
 			     (bh_route,
 			      bh_lifespan,
 			      bh_starttime,
-			      bh_community,
 			      bh_requestor,
 			      bh_active)
                         VALUES
-			     (?,?,?,?,?,1);";
+			     (?,?,?,?,1);";
     my $sth = $dbh->prepare($query);
     my $datetime = $json->{'bh_startdate'} . " " . $json->{'bh_starttime'};
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
     $sth->bind_param(3, $datetime);
-    $sth->bind_param(4, $json->{'bh_community'});
     $sth->bind_param(5, "rapier");
     $sth->execute();
     #need error checking 
@@ -592,9 +639,9 @@ sub addUser {
     my $query = "INSERT INTO bh_users 
 		        (bh_user_name, bh_user_fname, bh_user_lname, 
                          bh_user_email, bh_user_affiliation, bh_user_role,
-                         bh_user_active, bh_user_pass, bh_user_community)
+                         bh_user_active, bh_user_pass)
 		 VALUES 
-			(?,?,?,?,?,?,?,?,?)";		       
+			(?,?,?,?,?,?,?,?)";		       
     my $sth=$dbh->prepare($query);
     $sth->bind_param(1, $json->{'user-username'});
     $sth->bind_param(2, $json->{'user-fname'});
@@ -604,7 +651,6 @@ sub addUser {
     $sth->bind_param(6, $json->{'user-role'});
     $sth->bind_param(7, $json->{'user-active'});
     $sth->bind_param(8, $passhash);
-    $sth->bind_param(9, $json->{'user-community'});
     $sth->execute();
     if ($sth->err()) {
 	my $error = $sth->errstr();
@@ -823,7 +869,7 @@ sub updateloop {
 my $server = &instantiateServer(); #get the server socket
 # we need a loop that will ,every minute or so, query the db
 # to update any route information in terms of the routes expiring.
-#&updateloop();
-#&mainloop ($server);
-my $foo->{'action'} = "blackhole";
-&processInboundRequests("this is a test", $foo);
+&updateloop();
+&mainloop ($server);
+#my $foo->{'action'} = "blackhole";
+#&processInboundRequests("this is a test", $foo);

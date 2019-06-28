@@ -12,7 +12,6 @@
  * bh_active: is the rout active
  * bh_route: the route in question
  * bh_lifespan: time the route is alive in hours
- * bh_community: the community setting
  * action: expect to see edit here
  */
 
@@ -48,12 +47,6 @@ if (! is_numeric($_POST['bh_lifespan'])) {
     gotoerr("Invalid duration. This value must be numeric.");
 }
 
-/* must have a value. I think. Revist this if it's optional*/
-if ($_POST['bh_community'] == "") {
-    gotoerr("Community data missing in request");
-}
-
-
 /* everything needs to be checked for consistency and injection attacks
  * bh_route and community are the only ones that are of concern
  * as we already have a check for bh_lifespan. 
@@ -77,18 +70,16 @@ if (mysqli_connect_errno()) {
 }
 
 $route = $mysqli->real_escape_string($_POST['bh_route']);
-$community = $mysqli->real_escape_string($_POST['bh_community']);
 
 $query = "UPDATE bh_routes
           SET bh_active = ?,
               bh_lifespan = ?,
-              bh_route = ?,
-              bh_community = ?
+              bh_route = ?
           WHERE bh_index = ?";
 
 if ($stmt = $mysqli->prepare($query)){
     $stmt->bind_param("dissi", $_POST['bh_active'], $_POST['bh_lifespan'],
-                      $route, $community, $_POST['id']);
+                      $route, $_POST['id']);
 $stmt->execute();
 if ($stmt->errno) {
     gotoerr("Update failed:" . $stmt->error);

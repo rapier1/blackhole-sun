@@ -104,6 +104,8 @@
         </div> <!-- END nav container -->
     </nav>
 
+    <nav class="container"> <!-- main body -->
+    
     <?php
     $errFlag = "";
     $errMsg = "";
@@ -247,6 +249,7 @@
      print "managementFormInfo(".$errFlag.", \"".$errMsg."\");";
      ?>   
     </script>
+</div> <!-- main body-->
 </body>
 
 
