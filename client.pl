@@ -15,6 +15,8 @@ use Data::Dumper;
 use JSON;
 use Switch;
 use DBI;
+use Net::Netmask;
+use Scalar::Util qw(looks_like_number);
 use App::Genpass; # create random password 
 use Email::Stuffer; # MIME::Lite has been deprecated
 use Email::Sender::Simple qw(sendmail);
@@ -100,6 +102,13 @@ sub validateConfig {
     if (! defined $config->{'database'}->{'password'}) {
 	print "Database password not defined. Exiting.\n";
 	exit;
+    }
+    # check the duration mix/max for bh requests
+    if (! defined $config->{'duration'}->{'min'}) {
+	$config->{'duration'}->{'min'} = 0;
+    }
+    if (! defined $config->{'duration'}->{'max'}) {
+	$config->{'duration'}->{'max'} = 2160;
     }
 }
 
@@ -275,6 +284,25 @@ sub validateJson {
     return $text;
 }
 
+sub validateBHInput {
+    my $json = shift;
+    my $block = Net::Netmask->new2($json->{bh_route});
+    if (!$block) {
+	#invalid ip address
+	return -1;
+    }
+    # verify that duration is a number greater than the configured
+    # min and max (0 and 2160 by default)
+    if (!looks_like_number($json->{bh_lifespan})) {
+	return -2;
+    }
+    if ($json->{bh_lifespan} <  $config->{'duration'}->{'min'}
+	|| $json->{bh_lifespan} > $config->{'duration'}->{'max'}) {
+	return -3;
+    }
+    return 1;
+}
+
 # handle the incoming requests from the inbound client here
 # these requests are in valid json format
 sub processInboundRequests {
@@ -291,6 +319,14 @@ sub processInboundRequests {
 	}	    
 	case /blackhole/i {
 	    print "about to open socket to exabgp interface\n";
+
+	    # verify if the IP address/mask is valid. 
+	    # note date and time is validated at user input
+	    my $valid = validateBHInput($json);
+	    if ($valid != 1) {
+		return $valid;
+	    }
+
 	    my $exa_socket = &openExaSocket; #create ExaBGP interface socket
 	    if (! &authorize($exa_socket)) { #authorize this process 
 		print "Validation failed\n";
@@ -299,8 +335,10 @@ sub processInboundRequests {
 		close ($child);
 		return;
 	    }
+
 	    my $status = &blackHole($exa_socket, $json);
 	    close ($exa_socket);
+
 	    # add route to the database
 	    my $db_stat = &addRouteToDB($json);
 	    return $status;
@@ -423,6 +461,21 @@ sub blackHole {
 
 sub editRouteInDB {
     my $json = shift @_;
+    print "about to edit route in DB";
+
+    # if for some reason we don't have a valid bh_index
+    # and it is equal to NULL then the update fails
+    if (! defined $json->{'bh_index'}) {
+	return -4;
+    }
+    
+    #validate the route and duration
+    my $valid = validateBHInput($json);
+    if ($valid != 1) {
+	return $valid;
+    }
+
+    # get a socket to the database
     my $dbh = &DBSocket();
     my $query = "UPDATE bh_routes
                  SET bh_route = ?,
@@ -440,6 +493,7 @@ sub editRouteInDB {
 	my $error = $sth->errstr();
 	$sth->finish();
 	$dbh->disconnect();
+	print "$error\n";
 	return ($error);
     }
     $sth->finish();

@@ -197,8 +197,19 @@ function parseResponse ($action, $data) {
 }
 
 function confirmBH($data) {
-    print "<script>alert('yes')</script>";    
-    print "Did that work?: $data";
+    if ($data == -1) {
+        print "<script>alert('Invalid Route/IP Entered')</script>";    
+        return;
+    }
+    if ($data == -2) {
+        print "<script>alert('Non Numeric Duration Entered')</script>";    
+        return;
+    }
+    if ($data == -3) {
+        print "<script>alert('Duration Out Of Range (must be between 0 and 2160)')</script>";    
+        return;
+    }
+    print "<script>alert('$data')</script>";    
 }
 
 function formatList($request) {
@@ -220,8 +231,17 @@ function formatList($request) {
 		if (obj.results == "Success") {
 		    alert("Route updated");
 		} else {
-		    // on a failure we shoudl find some way to revert to the prior values
-		    alert("Update failure: " + obj.results);
+            if (obj.results == "-1") {
+                error = "Invalid route";
+            } else if (obj.results == "-2") {
+                error = "Non numeric duration";
+            } else if (obj.results == "-3") {
+                error = "Duration out of bounds";
+            } else {
+                error = "Unknown error";
+            }
+            // on a failure we should find some way to revert to the prior values
+		    alert("Update failure: " + error);
 		}
 		return;
 	    },
@@ -235,7 +255,7 @@ function formatList($request) {
 		editable: [[1, 'bh_active', '{"0": "no", "1": "yes"}'],
 			   [2, 'bh_route'],
 			   [3, 'bh_lifespan'],
-			   [8, 'bh_index']]
+			   [7, 'bh_index']]
 	    }
 	});
     });        
