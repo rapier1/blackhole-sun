@@ -178,7 +178,7 @@ sub processInput {
     my $cli_socket = shift; # client socket
     my $client_input = shift;
     my $response;
-    my @request = decode_json($client_input);
+    my %request = decode_json($client_input);
 
     #request{action}
     #request{route}
@@ -222,9 +222,12 @@ sub dumpRoute {
     # this is a test to see if we can grab the data from exabgp.
     # this isn't the way I'd like to do it but it seems to work effectively
     # so I'm not going to complain too much right now. 
-    (my $data, my $stderr, my $exit) = capture {
+    my $data;
+    my $stderr;
+    my $exit;
+    ($data, $stderr, $exit) = capture {
 	system ("/usr/local/bin/exabgpcli show adj-rib out");
-    };
+    }
     return $data;
 }
 
@@ -234,7 +237,7 @@ sub withdrawRoutes {
 	my $templateNum = "template_" . $i;
 	my $template = $config->{'templates'}->{$templateNum};
 	$logger->debug("template is $template for $templateNum");
-	$tmeplate =~ s/announce/withdraw/;
+	$template =~ s/announce/withdraw/;
 	$template =~ s/_route_/$route/;
 	$logger->debug("Transformed template is $template");
 	# we just print to STDOUT to send it to the ExaBGP process

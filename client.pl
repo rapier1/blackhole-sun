@@ -397,7 +397,7 @@ sub processInboundRequests {
 
 sub sendtoExaBgpInt {
     my $child = shift;
-    my $reqeust = shift;
+    my $request = shift;
     my $action = shift;
     #delete one blackhole route
     print "about to open socket to exabgp interface\n";
@@ -472,11 +472,11 @@ sub blackHole {
                         # 'del' = remove route
                         # 'dump' = dump list of all routes in exabgp
     my $status; # this is what we get back from the exabgp interface
-    my @request_struct;
+    my %request_struct;
     
     $request_struct{'action'} = $action;
     $request_struct{'route'} = $route;
-    my $request = encode_json \@request_struct;
+    my $request = encode_json \%request_struct;
     
     print $srv_socket $request . "\n";
 
