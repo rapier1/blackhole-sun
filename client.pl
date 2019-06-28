@@ -290,18 +290,9 @@ sub processInboundRequests {
 	    return;
 	}	    
 	case /blackhole/i {
-	    print "about to open socket to exabgp interface\n";
-	    my $exa_socket = &openExaSocket; #create ExaBGP interface socket
-	    if (! &authorize($exa_socket)) { #authorize this process 
-		print "Validation failed\n";
-		print $child "Authorization failed\n";
-		close ($exa_socket);
-		close ($child);
-		return;
-	    }
-	    my $status = &blackHole($exa_socket, $json);
-	    close ($exa_socket);
-	    # add route to the database
+	    my $status = senndtoExaBgpInt ($child, $json, "add");
+
+	    #add route to DB
 	    my $db_stat = &addRouteToDB($json);
 	    return $status;
 	}
@@ -347,16 +338,48 @@ sub processInboundRequests {
 	    # exabgp server
 	}
 	case /deleteselection/ {
-	    #delete one or more blackhole routes
+	    #delete one blackhole route
+	    my $status = senndtoExaBgpInt ($child, $json, "del");
+	    # set route to inactive route to the database
+	    my $db_stat = &inactivateRouteInDB($json);
+	    return $status;
 	}
 	case /confirmbhdata/ {
 	    #compare bh data from db to exabgp
+	    # get a dump from the exabgp server
+	    # get a dump from the db
+	    # ?
+	    # profit
+
 	}
-	else {
+	case /dump/ {
+	    #get a listing of all route information on the exbgp server
+	    my $status = senndtoExaBgpInt ($child, $json, "dump");
+	    return $status;	    
 	}
     }
 }
 
+sub sendtoExaBgpInt {
+    my $child = shift;
+    my $reqeust = shift;
+    my $action = shift;
+    #delete one blackhole route
+    print "about to open socket to exabgp interface\n";
+    my $exa_socket = &openExaSocket; #create ExaBGP interface socket
+    if (! &authorize($exa_socket)) { #authorize this process 
+	print "Validation failed\n";
+	print $child "Authorization failed\n";
+		close ($exa_socket);
+	close ($child);
+	return;
+    }
+    my $status = &blackHole($exa_socket, $request, $action);
+    close ($exa_socket);
+    return $status;
+}
+
+    
 # grab a list of the current blackhole routes from the database
 # turn them into a json object
 # return the object to the browser for display
@@ -407,17 +430,22 @@ sub DBSocket {
 # create, delete, or modify black holes
 # the socket in question is the exabgp interface socket
 sub blackHole {
-    my $socket = shift; # socket to the exabgp_interface
-    my $json = shift; # the blackhole request structure
+    my $srv_socket = shift; # socket to the exabgp_interface
+    my $route = shift; # the blackhole route 
+    my $action = shift; # what we want the exabgp interface to do
+                        # 'add' = add route to black hole
+                        # 'del' = remove route
+                        # 'dump' = dump list of all routes in exabgp
     my $status; # this is what we get back from the exabgp interface
+    my @request_struct;
+    
+    $request_struct{'action'} = $action;
+    $request_struct{'route'} = $route;
+    my $request = encode_json \@request_struct;
+    
+    print $srv_socket $request . "\n";
 
-    # I don't know the EXABGP format yet but in the meantime we'll fake it
-    #my $request = $json->{'bh_route'} . " " . $json->{'bh_lifespan'} .
-    #	" " . $json->{'bh_community'};
-    my $request = "hello there!";
-    print $socket $request . "\n";
-
-    $socket->read($status,4096);
+    $srv_socket->read($status, 32768); # read to 32k or the end of line
     $status = "Got to blackhole subroutine: $status";
     print "$status";
     return $status;

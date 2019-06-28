@@ -51,24 +51,23 @@ use Try::Tiny;
 use Config::Tiny;
 use Getopt::Std;
 use Data::Dumper;
-use IO::Scalar; #used to capture STDOUT to buffer
+use Capture::Tiny qw(capture);
 use Log::Log4perl;
 
 my %options = ();
 my $config = Config::Tiny->new();
 my $cfg_path = "/usr/local/etc/exabgp_interface.cfg";
-Log::Log4perl::init('/usr/local/etc/bhs-log4perl.conf');
-my $logger = Log::Log4perl->get_logger('logger');
+my $logger; # this is the object for the logger it is intantianted later
 
 sub readConfig {
     if (! -e $cfg_path) {
-	$logger->error("Config file not found at $cfg_path. Exiting.");
+	print STDERR "Config file not found at $cfg_path. Exiting.\n";
         exit;
     } else {
         $config = Config::Tiny->read($cfg_path);
         my $error = $config->errstr();
         if ($error ne "") {
-	    $logger->error("Error: $error. Exiting");
+	    print STDERR "Error loading config file: $error. Exiting.\n";
             exit;
         }
     }
@@ -78,6 +77,11 @@ sub readConfig {
 # variables exist and validates them as best we can.
 sub validateConfig {
 #check db data
+    if (! defined $config->{'server'}->{'listen'}) {
+        print STDERR "Listen port not defined in config file. Exiting\n";
+	$logger->error("Listen port not defined in config file. Exiting");
+        exit;
+    }
     if (! defined $config->{'keys'}->{'server_private_rsa'}) {
         print STDERR "Missing DB host infomation in config file. Exiting\n";
 	$logger->error("Missing DB host infomation in config file. Exiting");
@@ -98,6 +102,8 @@ sub validateConfig {
 	$logger->error("The client's public RSA file is missing or not readable. Exiting.");
         exit;
     }
+
+
 }
 
 sub authorize {
@@ -169,34 +175,80 @@ sub authorize {
 }
 
 sub processInput {
-    my $socket = shift;
-    my $response = shift;
-    my $data;
-    tie *STDOUT, 'IO::Scalar', \$data;
+    my $cli_socket = shift; # client socket
+    my $client_input = shift;
+    my $response;
+    my @request = decode_json($client_input);
+
+    #request{action}
+    #request{route}
+
+    if ($request{'action'} == "add") {
+	$response = &addBHroute($request{'route'});
+    }
+
+    if ($request{'action'} == "dump") {
+	$response = &dumpRoutes();
+    }
+    
+    if ($request{'action'} == "del") {
+	$response = &withdrawRoutes($request{'route'});
+    }
+
+    print $cli_socket $response;
+}
+ 
+sub addBHRoute {
+    my $route = shift;
+    
     # the template for each blackhole route configuration in the config
     # file in the format of template_n so step through each and replace
     # the route keyword with the route to blackhole
-    $logger->debug("In processInput and response is $response");
-    $logger->debug("also we have $config->{template}->{total_templates} templates");
-    for (my $i = 1; $i <= $config->{'template'}->{'total_templates'}; $i++) {
+    $logger->debug("In addBHRoute with $route and  $config->{templates}->{total_templates} templates");
+    for (my $i = 1; $i <= $config->{'templates'}->{'total_templates'}; $i++) {
 	my $templateNum = "template_" . $i;
-	my $template = $config->{'template'}->{$templateNum};
+	my $template = $config->{'templates'}->{$templateNum};
 	$logger->debug("template is $template for $templateNum");
-	$template =~ s/_route_/$response/;
+	$template =~ s/_route_/$route/;
 	$logger->debug("Transformed template is $template");
 	# we just print to STDOUT to send it to the ExaBGP process
 	print STDOUT $template ."\n";
 	$logger->debug("sending $template to ExaBGP")
     }
-    untie *STDOUT;
-    print $socket $data;
+    return;
+}
+    
+sub dumpRoute {
+    # this is a test to see if we can grab the data from exabgp.
+    # this isn't the way I'd like to do it but it seems to work effectively
+    # so I'm not going to complain too much right now. 
+    (my $data, my $stderr, my $exit) = capture {
+	system ("/usr/local/bin/exabgpcli show adj-rib out");
+    };
+    return $data;
+}
+
+sub withdrawRoutes {
+    my $route = shift;
+    for (my $i = 1; $i <= $config->{'templates'}->{'total_templates'}; $i++) {
+	my $templateNum = "template_" . $i;
+	my $template = $config->{'templates'}->{$templateNum};
+	$logger->debug("template is $template for $templateNum");
+	$tmeplate =~ s/announce/withdraw/;
+	$template =~ s/_route_/$route/;
+	$logger->debug("Transformed template is $template");
+	# we just print to STDOUT to send it to the ExaBGP process
+	print STDOUT $template ."\n";
+	$logger->debug("sending $template to ExaBGP")
+    }    
+    return;
 }
 
 sub startServer {
     my $authorized = -1;
     $SIG{CHLD} = sub {wait ()};
     my $server = IO::Socket::INET->new(LocalAddr => 'localhost',
-				       LocalPort => 20203,
+				       LocalPort => $config->{'server'}->{'listen'},
 				       Listen => 5,
 				       Proto => 'tcp',
 				       Reuse => 1,
@@ -228,6 +280,7 @@ sub startServer {
 		# Child process
 		if ($authorized == 1) {
 		    while (defined (my $buf = <$child>)) {
+			# the input is a json object
 			chomp $buf;
 			if ($buf =~ /quit/) {
 			    print $child "Quitting\n";
@@ -268,7 +321,16 @@ if (defined $options{f}) {
     }
 }
 
+#get the config information
 readConfig();
+
+#start the logger
+Log::Log4perl::init($config->{'logconfig'}->{'path'});
+$logger = Log::Log4perl->get_logger('logger');
+
+# make sure the config isn't full of stupid
 validateConfig();
+
+#start the main server loop
 startServer();
 
