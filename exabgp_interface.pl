@@ -40,6 +40,7 @@
 
 use strict;
 use warnings;
+use JSON;
 use Sys::Syslog qw(:standard :macros);
 use IO::Socket::SSL qw(inet4);
 use IO::Socket::INET;
@@ -250,7 +251,7 @@ sub withdrawRoutes {
 sub startServer {
     my $authorized = -1;
     $SIG{CHLD} = sub {wait ()};
-    my $server = IO::Socket::INET->new(LocalAddr => 'localhost',
+    my $server = IO::Socket::INET->new(LocalAddr => '0.0.0.0',
 				       LocalPort => $config->{'server'}->{'listen'},
 				       Listen => 5,
 				       Proto => 'tcp',

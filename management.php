@@ -98,6 +98,7 @@
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
 		<p class="navbar-right navbar-btn"><button id="newUser" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newuser.php'" type="button" class="btn btn-sm btn-primary">New User</button></p>
+		<p class="navbar-right navbar-btn"><button id="customers" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/customers.php'" type="button" class="btn btn-sm btn-primary">Customers</button></p>		
 		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/mainpage.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'" type="button" class="btn btn-sm btn-primary">Logout</button></p>
             </div><!--/.nav-collapse -->
@@ -131,7 +132,7 @@
     } elseif ($_POST['action'] == "updateUser") {
         // user edit has been submitted. handle it
         $json = json_encode($_POST) . "\n";
-        $response = sendToProcessingEngine($json);
+	$response = sendToProcessingEngine($json);
         if (preg_match("/Success/", $response)) {
             $errFlag = 0;
             $errMsg = "User Updated Successfully";
@@ -142,7 +143,7 @@
             // reload the user edit form
             list($error, $form) = loadUserForm($_SESSION['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
             if ($_SESSION['bh_user_role'] == 4) {
-                $passbutton = passwordResetWidget($_POST['edituser']);
+                $passbutton = passwordResetWidget($_SESSION['edituser']);
             }
             print "<table align='center'> <tr><td>";
             print $form;
@@ -232,7 +233,7 @@
         $user_table = listUsers();
         // we need to be able to edit individual users. by wrapping the list in a
         // form we can do that
-        print "<form id='loginForm' name='loginForm' class='form-horizontal col-6' action='" . htmlspecialchars($_SERVER['PHP_SELF']) . "' method='post' role='form' class='form-horizontal'>";     
+        print "<form id='userForm' name='userForm' class='form-horizontal col-6' action='" . htmlspecialchars($_SERVER['PHP_SELF']) . "' method='post' role='form' class='form-horizontal'>";     
         print $user_table;
         print "<button type='submit' name='action' value='edit' class='btn btn-success'>Edit Selcted</button>";
         print "</form>";

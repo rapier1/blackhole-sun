@@ -102,18 +102,18 @@
     $errMsg="";
     $url = "";
     if ($_POST['action'] == "addUser") {
-	$json = json_encode($_POST);
-	$response = sendToProcessingEngine($json);
-	print "response is $response";
-	if (preg_match("/Success/", $response)) {
-	    $url =  "/blackholesun/management.php";
+        $json = json_encode($_POST);
+        $response = sendToProcessingEngine($json);
+        /* print "response is $response"; */
+        if (preg_match("/Success/", $response)) {
+            $url =  "/blackholesun/management.php";
             $errFlag = 0;
             $errMsg = "New User Successfully Added. Initial Password Sent.";
-	} else {
-	    $url =  "/blackholesun/newuser.php";
+        } else {
+            $url =  "/blackholesun/newuser.php";
             $errFlag = 1;
             $errMsg = "Failed to add user: $response";
-	}
+        }
     }
     $form = newUserForm();
     print "<table align='center'><tr><td>";

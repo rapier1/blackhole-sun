@@ -111,7 +111,7 @@
         } else {
             $errFlag = 1;
             $errMsg = "There was an error updating your account: $response";
-	}
+        }
     } elseif ($_POST['action'] == "changePassword") {
         if (confirmPass($_REQUEST["cpass"]) === FALSE) {
             // bad current password

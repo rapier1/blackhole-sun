@@ -210,7 +210,8 @@ sub authorize {
 
 #open a connection to the server
 sub openExaSocket {
-    print "About to open ExaSocket\n";
+    print "About to open ExaSocket: $config->{'interface'}->{'host'}, $config->{'interface'}->{'port'}\n";
+    
     my $sock = IO::Socket::INET->new(PeerAddr => $config->{'interface'}->{'host'},
 					   PeerPort => $config->{'interface'}->{'port'},
 					   Proto    => 'tcp') or die "Cannot connect: $!\n";
@@ -277,7 +278,7 @@ sub validateJson {
     my $text;
 #    try {
     print $jsonstring;
-	$text = decode_json($jsonstring);
+    $text = decode_json($jsonstring);
 #    } catch {
 #	return -1
 #    }
@@ -325,11 +326,19 @@ sub processInboundRequests {
 		return $valid;
 	    }
 
-	    my $status = senndtoExaBgpInt ($child, $json, "add");
+	    print "About to interface with ExaBGP\n";
+	    my $status = sendtoExaBgpInt ($child, $json, "add");
 	    # add route to the database
+	    if ($status == -1) {
+		return "Error interfacing with ExaBGP";
+	    }		
 
+	    print "About to add route to database\n";
 	    my $db_stat = &addRouteToDB($json);
-	    return $status;
+	    if ($db_stat != 1) {
+		return "Error adding route to Database: $db_stat";
+	    }
+	    return 1;
 	}
 	case /listexisting/ {
 	    #get a list of the existing blackhole routes from the DB
@@ -368,13 +377,25 @@ sub processInboundRequests {
 	    my $status = &deleteUser($json);
 	    return $status;
 	}
+	case /updateClient/ {
+	    my $status = &updateClient($json);
+	    return $status;
+	}
+	case /addClient/ {
+	    my $status = &addClient($json);
+	    return $status;
+	}
+	case /confirmDeleteClient/ {
+	    my $status = &deleteClient($json);
+	    return $status;
+	}
 	case /pushchanges/ {
 	    # this forces the db to push all pending changes out to the
 	    # exabgp server
 	}
 	case /deleteselection/ {
 	    #delete one blackhole route
-	    my $status = senndtoExaBgpInt ($child, $json, "del");
+	    my $status = sendtoExaBgpInt ($child, $json, "del");
 	    # set route to inactive route to the database
 	    my $db_stat = &inactivateRouteInDB($json);
 	    return $status;
@@ -481,12 +502,25 @@ sub blackHole {
     print $srv_socket $request . "\n";
 
     $srv_socket->read($status, 32768); # read to 32k or the end of line
-    $status = "Got to blackhole subroutine: $status";
-    print "$status";
-    return $status;
+    if ($status eq "Success") {
+	return 1;
+    } else {
+	return -1;
+    }
 }    
 
 
+# the user has made a change to a route using the table edit functionality
+# There are a few thing they may have done
+# 1: Set the route to inactive
+# 2: changed the route
+# 3: changed the duration
+# if 1 then withdraw route
+# if 2 withdraw route and send new route
+# if 3 only update the db
+# if 1 && 2 then then doesn't make sense but we need to
+# plan for it anyway in that case we withdraw the route
+# and only update the db
 sub editRouteInDB {
     my $json = shift @_;
     print "about to edit route in DB";
@@ -505,13 +539,49 @@ sub editRouteInDB {
 
     # get a socket to the database
     my $dbh = &DBSocket();
-    my $query = "UPDATE bh_routes
+    my $query = "SELECT bh_route FROM bh_routes WHERE bh_index = ?";
+    my $sth = $dbh->prepare($query);
+    $sth->bind_param(1, $json->{'bh_index'});
+    $sth->execute();
+    if ($sth->err()) {
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
+    }    
+    if ($sth->rows != 1) {
+	$sth->finish();
+	$dbh->disconnect();
+	return "No results for this route index";
+    }
+    my @route_orig = $sth->fetchrow_array();
+
+    # get the original route based on the index number
+    
+    
+    if ($json->{'bh_active'} == 0) {
+	sendtoExaBgpInt("", $route_orig[0], "del");
+	#withdraw the route
+    }
+
+    if ($json->{'bh_active'} == 1) {
+	# if the new route is different than the old route then
+	# withdraw it first
+	if ($json->{'bh_route'} ne $route_orig[0]) {
+	    sendtoExaBgpInt("", $route_orig[0], "del");
+	}
+	#add the route
+	sendtoExaBgpInt("", $json->{'bh_route'}, "add");
+    }
+
+    # update the database with the new information
+    $query = "UPDATE bh_routes
                  SET bh_route = ?,
                      bh_lifespan = ?,
                      bh_active = ?
                  WHERE 
 		     bh_index = ?";
-    my $sth=$dbh->prepare($query);
+    $sth=$dbh->prepare($query);
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
     $sth->bind_param(3, $json->{'bh_active'});
@@ -530,13 +600,15 @@ sub editRouteInDB {
 }		 
 
 # get the incoming request and insert it in to the database
-# his comes after the request has been sent ot the exabgp server
+# this comes after the request has been sent ot the exabgp server
 # I may want to change this so that instead of writin from here to the
 # ex server I write the the DB and then trigger a process that
 # normalizes the ex server to the DB. 
 sub addRouteToDB {
     my $json = shift;
     my $dbh = &DBSocket();
+    my $error;
+    #    local $dbh->{TraceLevel} = "3|SQL";
     my $query = "INSERT INTO bh_routes
 			     (bh_route,
 			      bh_lifespan,
@@ -550,13 +622,116 @@ sub addRouteToDB {
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
     $sth->bind_param(3, $datetime);
-    $sth->bind_param(5, "rapier");
+    $sth->bind_param(4, $json->{'bh_requestor'});
     $sth->execute();
     #need error checking 
+    if ($sth->err()) {
+	$error = $sth->errstr();
+    }
     $sth->finish();
     $dbh->disconnect();
-    return;
+    if ($error) {
+	return $error;
+    } else {
+	return 1;
+    }
 }
+
+# get an incoming request to update a client
+# TODO: updateClient and addClient can be reduced into
+# one function if we pass a flag
+sub updateClient {
+    my $json = shift; #incoming json
+    my $update; # json string
+    my %block_hash;
+
+    # get the socket
+    my $dbh = &DBSocket;
+
+    # we need to conver the CSV values to arrays
+    my @asns = split (",", $json->{'client-asns'});
+    map { s/^\s+|\s+$//g; } @asns;
+    my @vlans = split (",", $json->{'client-vlans'});
+    map { s/^\s+|\s+$//g; } @vlans;
+    my @blocks = split (",", $json->{'client-blocks'});
+    map { s/^\s+|\s+$//g; } @blocks;
+    
+    # build the hash of block data
+    $block_hash{'name'} = $json->{'client-name'};
+    $block_hash{'ASNs'} = [@asns];
+    $block_hash{'vlans'} = [@vlans];
+    $block_hash{'blocks'} = [@blocks];
+    
+    # convert the hash into a json string
+    $update = encode_json \%block_hash;
+
+    #we have all of the necessary structures so now we can build the query
+    my $query = "UPDATE bh_clients
+              SET bh_client_name = ?,
+                  bh_client_blocks = ?
+              WHERE 
+		  bh_client_id = ?";
+    my $sth = $dbh->prepare($query);
+    $sth->bind_param(1, $json->{'client-name'});
+    $sth->bind_param(2, $update);
+    $sth->bind_param(3, $json->{'bh_client_id'});
+    $sth->execute();
+    if ($sth->err()) {
+	my $error = $sth->errstr() . "\n";
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
+    }
+    return "Success\n";
+}
+
+# add a client to the database
+# incoming data is in json format
+# return the word 'Success' on success ;)
+# really need to convert these magic words into
+# numerical values. 
+sub addClient {
+    my $json = shift; #incoming json
+    my $update; # json string
+    my %block_hash;
+
+    # get the socket
+    my $dbh = &DBSocket;
+
+    # we need to conver the CSV values to arrays
+    my @asns = split (",", $json->{'client-asns'});
+    map { s/^\s+|\s+$//g; } @asns;
+    my @vlans = split (",", $json->{'client-vlans'});
+    map { s/^\s+|\s+$//g; } @vlans;
+    my @blocks = split (",", $json->{'client-blocks'});
+    map { s/^\s+|\s+$//g; } @blocks;
+    
+    # build the hash of block data
+    $block_hash{'name'} = $json->{'client-name'};
+    $block_hash{'ASNs'} = [@asns];
+    $block_hash{'vlans'} = [@vlans];
+    $block_hash{'blocks'} = [@blocks];
+    
+    # convert the hash into a json string
+    $update = encode_json \%block_hash;
+    
+    #we have all of the necessary structures so now we can build the query
+    my $query = "INSERT INTO bh_clients
+		    (bh_client_name, bh_client_blocks)
+		 VALUES (?,?)";			     
+    my $sth = $dbh->prepare($query);
+    $sth->bind_param(1, $json->{'client-name'});
+    $sth->bind_param(2, $update);
+    $sth->execute();
+    if ($sth->err()) {
+	my $error = $sth->errstr() . "\n";
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
+    }
+    return "Success\n";
+}
+
 
 # get an incoming request to update a user and update the database.
 sub updateUser {
@@ -804,6 +979,9 @@ sub changePassword {
     return "Success";
 }
 
+# the following two functions
+# deleteUser and deleteClient can also be
+# collapsed with the use of flags.
 sub deleteUser {
     my $json = shift @_;
     my $dbh = &DBSocket();
@@ -811,6 +989,25 @@ sub deleteUser {
 		 WHERE bh_user_id = ?";
     my $sth = $dbh->prepare($query);
     $sth->bind_param(1, $json->{'bh_user_id'});
+    $sth->execute();
+    if ($sth->err()) {
+	my $error = $sth->errstr();
+	$sth->finish();
+	$dbh->disconnect();
+	return ($error);
+    }
+    $sth->finish();
+    $dbh->disconnect();
+    return "Success";
+}
+
+sub deleteClient {
+    my $json = shift @_;
+    my $dbh = &DBSocket();
+    my $query = "DELETE FROM bh_clients
+		 WHERE bh_client_id = ?";
+    my $sth = $dbh->prepare($query);
+    $sth->bind_param(1, $json->{'bh_client_id'});
     $sth->execute();
     if ($sth->err()) {
 	my $error = $sth->errstr();
@@ -831,11 +1028,12 @@ sub updateloop {
 	# this query finds all of the active routes where the difference
 	# between the start time and the current time is greater than the
 	# desired life of the route
-	my $query = "SELECT (timestampdiff(hour, bh_starttime, current_timestamp()) > bh_lifespan), 
-					       bh_index 
-					       FROM   bh_routes 
-					       WHERE  bh_active=1";
+	my $query = "SELECT bh_index, bh_route 
+		     FROM   bh_routes 
+		     WHERE  (timestampdiff(hour, bh_starttime, current_timestamp()) > bh_lifespan)
+                     AND bh_active=1";
 	my $sth = $dbh->prepare($query);
+	my $route_json;
 	while (1) {
 	    #every minute find any routes that have expired
 	    $sth->execute();
@@ -855,7 +1053,10 @@ sub updateloop {
 		    print "Error in updateloop: $updatesth->error()";
 		}
 		# we now have to fire off something to exaBGP to tell it to
-		# eliminate those routes
+		# eliminate those routes. We don't need to specify the first
+		# argument as it's only used to print errors to STDIN
+		# TODO: create real logging for this
+		sendtoExaBgpInt("", $result->{'bh_route'}, "del");
 	    }   
 	    sleep 60;
 	}
@@ -869,7 +1070,7 @@ sub updateloop {
 my $server = &instantiateServer(); #get the server socket
 # we need a loop that will ,every minute or so, query the db
 # to update any route information in terms of the routes expiring.
-&updateloop();
+&updateloop($server);
 &mainloop ($server);
 #my $foo->{'action'} = "blackhole";
 #&processInboundRequests("this is a test", $foo);

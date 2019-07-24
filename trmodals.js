@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 The Board of Trustees of Carnegie Mellon University.
+ * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
  *  Authors: Chris Rapier <rapier@psc.edu> 
  *          Nate Robinson <nate@psc.edu>
@@ -72,12 +72,45 @@ function managementFormInfo(flag, msg) {
     }
 }
 
+function customersFormInfo(flag, msg) {
+    if (formSrc == "customers") {
+	if (flag == 0) {
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+function addClientFormInfo(flag, msg) {
+    if (formSrc == "addClient") {
+	if (flag == 0) {
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
 function accountMgmtFormInfo(flag, msg) {
     if (formSrc == "accountMgmt") {
 	if (flag == 0) {
 	    modalMessage('success', msg);
 	}
 	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+function mainpageFormInfo(flag, msg) {
+    if (formSrc == "mainpage") {
+	if (flag == 1) {
+	    modalMessage('success', msg);
+	}
+	if (flag != 1) {
 	    modalMessage('error', msg);
 	}
     }

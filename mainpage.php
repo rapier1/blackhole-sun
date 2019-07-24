@@ -57,6 +57,13 @@
     <script type="text/javascript" src="./jquery/jquery.min.js"></script>
     <!-- load tabledit js library -->
     <script type="text/javascript" src="./jquery/jquery.tabledit.js"></script>
+    <!-- bootstrap javascript -->
+    <script src="bootstrap/dist/js/bootstrap.min.js"></script>
+    <!-- modals code -->
+    <script src="./trmodals.js"></script>
+    <link href="jquery/tablesorter-master/dist/css/theme.default.min.css" rel="stylesheet">
+    <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.min.js"></script>
+    <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.widgets.min.js"></script>    
 
     <?php
     session_start();
@@ -72,6 +79,7 @@
 </head>
 
 <body>
+    <?php include ("./modals.php"); ?>
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
@@ -140,199 +148,228 @@
 			    <td><input type="time" id="bh_starttime" name="bh_starttime"></td>
 			</tr>
 		    </table>
+		    <input type="hidden" name="bh_requestor" value="<?php echo $_SESSION['username'];?>">
 		    <input type="hidden" name="action" value="blackhole">
 		    <input type="submit" name="submit" value="Add BH Route">
 		</form>
-	<script>
-	 document.getElementById("bh_startdate").valueAsDate = new Date();
-	 var hours = new Date().getHours();
-	 var minutes = new Date().getUTCMinutes();
-	 if (minutes < 10) {
-	     minutes = "0" + minutes;
-	 }
-	 time = hours + ":" + minutes;
-	 document.getElementById("bh_starttime").value = time;
-	</script>
+		<script>
+		 document.getElementById("bh_startdate").valueAsDate = new Date();
+		 var hours = new Date().getHours();
+		 var minutes = new Date().getUTCMinutes();
+		 if (minutes < 10) {
+		     minutes = "0" + minutes;
+		 }
+		 time = hours + ":" + minutes;
+		 document.getElementById("bh_starttime").value = time;
+		</script>
 
-<?php
-/*I'm doing this whole thing wrong. I can't do this as a single 
- * monolithic page for any number of reasons. However, the most important
- * is that that it gets unweidly and makes it nearly imposible to use the various
- * javascipt libraries. We need to break all of the functions down into 
- * sub pages and make use of ajax as appropriate. 
- */
-
-if (isset($_POST['submit'])) {
-    /*We have form data*/
-    /* send the command to a function that will 
-     * determine the next set of routines to run in
-     * order to get the data. 
-     */
-    
-    $request = json_encode($_POST) . "\n";
-    $response = sendToProcessingEngine($request);
-    /*hopefully we have a reponse */
-    parseResponse($_POST['action'], $response);
-}
-
-/* we have a response. Now we need to parse it out
- * how we parse and display it is based on the type of
- * request that was sent */
-function parseResponse ($action, $data) {
-    switch ($action) {
-	case 'blackhole':
-	    confirmBH($data);
-	    break;
-	case 'listexisting':
-	    formatList($data);
-	    break;
-	case 'listactive':
-	    formatList($data);
-	    break;
-	case 'deleteselection':
-	case 'confirmbhdata':
-	case 'quit':
-	    break;
-    }
-}
-
-function confirmBH($data) {
-    if ($data == -1) {
-        print "<script>alert('Invalid Route/IP Entered')</script>";    
-        return;
-    }
-    if ($data == -2) {
-        print "<script>alert('Non Numeric Duration Entered')</script>";    
-        return;
-    }
-    if ($data == -3) {
-        print "<script>alert('Duration Out Of Range (must be between 0 and 2160)')</script>";    
-        return;
-    }
-    print "<script>alert('$data')</script>";    
-}
-
-function formatList($request) {
-    $table_data = json_decode($request, true);
-    // the ajax can't use the client process
-    // so we need to update the database in a different function
-    // in this case editdb.php. I dislike breaking up the
-    // database access functions like this but if I want to
-    // use the table edit function I need to go this route. 
-    print <<< EOL
-    <script type="text/javascript">   
-    $(document).ready(function(){
-	$('#bhTable').Tabledit({
-	    url: './editdb.php', 
-	    editButton: true,
-	    deleteButton: false,
-	    onSuccess: function (data, textStatus, jqXHR) {
-		obj = JSON.parse(data);
-		if (obj.results == "Success") {
-		    alert("Route updated");
-		} else {
-            if (obj.results == "-1") {
-                error = "Invalid route";
-            } else if (obj.results == "-2") {
-                error = "Non numeric duration";
-            } else if (obj.results == "-3") {
-                error = "Duration out of bounds";
-            } else {
-                error = "Unknown error";
-            }
-            // on a failure we should find some way to revert to the prior values
-		    alert("Update failure: " + error);
+		<?php
+		/*I'm doing this whole thing wrong. I can't do this as a single 
+		 * monolithic page for any number of reasons. However, the most important
+		 * is that that it gets unweidly and makes it nearly imposible to use the various
+		 * javascipt libraries. We need to break all of the functions down into 
+		 * sub pages and make use of ajax as appropriate. 
+		 */
+		
+		/* set this to your local timezone */
+		date_default_timezone_set('America/New_York');
+		
+		if (isset($_POST['submit'])) {
+                    /*We have form data*/
+		    /* send the command to a function that will 
+		     * determine the next set of routines to run in
+		     * order to get the data. 
+		     */
+		    $request = json_encode($_POST) . "\n";
+		    $response = sendToProcessingEngine($request);
+		    /*hopefully we have a reponse */
+		    parseResponse($_POST['action'], $response);
 		}
-		return;
-	    },
-	    // on a failure we shoudl find some way to revert to the prior values
-	    onFail(jqXHR, textStatus, errorThrown) {
-		alert("fail! " + errorThrown  + " : " + textStatus);
-		return;
-	    },
-	    columns: {
-		identifier: [0, 'id'],                    
-		editable: [[1, 'bh_active', '{"0": "no", "1": "yes"}'],
-			   [2, 'bh_route'],
-			   [3, 'bh_lifespan'],
-			   [7, 'bh_index']]
-	    }
-	});
-    });        
-    </script>
-    <hr>
-    <table id="bhTable" class="display" width="100%" align="center" cellspacing="0">
-    <thead>
-    <tr></tr>
-    <tr>
-    <th>Index</th>
-    <th>Active</th>
-    <th>Route</th>
-    <th>Duration</th>
-    <th>Start Time</th>
-    <th>Remaining</th>
-    <th>Requestor</th>
-    </tr>
-    </thead>
+		/* we have a response. Now we need to parse it out
+		 * how we parse and display it is based on the type of
+		 * request that was sent */
+		function parseResponse ($action, $data) {
+                    switch ($action) {
+			case 'blackhole':
+			    /* need to validate the route requested against the users
+			     * route blocks they have control over 
+			     */
+			    list ($validRouteFlag, $message) = validateRoute($_POST['bh_route'], $_SESSION['bh_client_id']);
+			    if (validRouteFlag != 1) {
+				$_SESSION['errFlag'] = -1;
+				$_SESSION['errMsg'] = $message;
+			    } else {
+				confirmBH($data);
+			    }
+			    break;
+			case 'listexisting':
+			    formatList($data);
+			    break;
+			case 'listactive':
+			    formatList($data);
+			    break;
+			case 'deleteselection':
+			case 'confirmbhdata':
+			case 'quit':
+			    break;
+		    }
+		}
+		
+		
+		function confirmBH($data) {
+		    $_SESSION['errFlag'] = trim($data);
+		    if ($data == 1) {
+			$_SESSION['errMsg'] = "Route successfully added";
+		    }
+		    if ($data == -1) {
+			$_SESSION['errMsg'] = "Invalid Route/IP Entered";    
+		    }
+		    if ($data == -2) {
+			$_SESSION['errMsg'] = "Non Numeric Duration Entered";    
+		    }
+		    if ($data == -3) {
+			$_SESSION['errMsg'] = "Duration Out Of Range (must be between 0 and 2160)";
+		    }
+		}
+		
+		function formatList($request) {
+		    $table_data = json_decode($request, true);
+		    // the ajax can't use the client process
+		    // so we need to update the database in a different function
+		    // in this case editdb.php. I dislike breaking up the
+		    // database access functions like this but if I want to
+		    // use the table edit function I need to go this route. 
+		    print <<< EOL
+		    <!-- Pick a theme, load the plugin & initialize plugin -->
+		    <script type="text/javascript">
+		    $(document).ready(function(){
+			$('#bhTable').tablesorter({
+			    widgets        : ['zebra', 'columns'],
+			    usNumberFormat : false,
+			    sortReset      : true,
+			    sortRestart    : true
+			});
+			$('#bhTable').Tabledit({
+			    url: './editdb.php', 
+			    editButton: true,
+			    deleteButton: false,
+			    onSuccess: function (data, textStatus, jqXHR) {
+				obj = JSON.parse(data);
+				if (obj.results == "Success") {
+				    alert("Route updated");
+				} else {
+				    if (obj.results == "-1") {
+					error = "Invalid route";
+				    } else if (obj.results == "-2") {
+					error = "Non numeric duration";
+				    } else if (obj.results == "-3") {
+					error = "Duration out of bounds";
+				    } else {
+					error = "Unknown error";
+				    }
+				    // on a failure we should find some way to revert to the prior values
+				    alert("Update failure: " + error);
+				}
+				return;
+			    },
+			    // on a failure we shoudl find some way to revert to the prior values
+			    onFail(jqXHR, textStatus, errorThrown) {
+				alert("fail! " + errorThrown  + " : " + textStatus);
+				return;
+			    },
+			    columns: {
+				identifier: [0, 'id'],                    
+				editable: [[1, 'bh_active', '{"0": "no", "1": "yes"}'],
+					   [2, 'bh_route'],
+					   [3, 'bh_lifespan'],
+					   [7, 'bh_index']]
+			    }
+			});
+		    });
+		    </script>
+		    <hr>
+		    <table id="bhTable" class="display" width="100%" align="center" cellspacing="0">
+		    <thead>
+		    <tr></tr>
+		    <tr>
+		    <th>Index</th>
+		    <th>Active</th>
+		    <th>Route</th>
+		    <th>Duration</th>
+		    <th>Start Time</th>
+		    <th>Remaining</th>
+		    <th>Requestor</th>
+		    </tr>
+		    </thead>
+		    <tbody>
 EOL;
-    foreach ($table_data as $row) {
-	$remaining = findRemainingTime($row[bh_starttime], $row[bh_lifespan]);
-	$active = "no";
-	if ($row[bh_active] == 1) {
-	    $active = "yes";
-	}
-	print "<tr>";
-	print "<td id='identifier' name='identifier'>" . $row[bh_index] . "</td>";
-	print "<td id='bh_active' name='bh_active'>" . $active . "</td>";
-	print "<td id='bh_route' name='bh_route'>" . $row[bh_route] . "</td>";
-	print "<td id='bh_lifespan' name='bh_lifespan'>" . $row[bh_lifespan] . "</td>";
-	print "<td>" . $row[bh_starttime] . "</td>";
-	print "<td>" . $remaining . "</td>";
-	print "<td>" . $row[bh_requestor] . "</td>";
-	# we hide this cell - we need to be able to pass along the index value but we
-	# don't want them to edit it. This works without modifying the tabledit js code. 
-	print "<td style='display:none' id='bh_index' name='bh_index'>" . $row[bh_index] . "</td>"; 
-	print "</tr>";
-    }
-    print "</table>";
-}
-
-function findRemainingTime ($start, $life) {
-    $currentdate = new DateTime(date('m/d/Y h:i:s'));
-    $startdate = new DateTime($start);
-    $diff = $currentdate->diff($startdate);
-    if ($diff < 0) {
-	return "$life:00";
-    }
-    $hours = $diff->days*24 + $diff->h + $diff->i/60;
-    $remaining = $life - $hours;
-    $fraction = $remaining - intval($remaining);
-    $timeleft = intval($remaining). ":" . $fraction*60;
-    if ($timeleft < 0) {
-	return "00:00";
-    }
-    return $timeleft;
-}
-
-/*sanity check to make sure it's actually json data */
-function validateJSON ($json=null) {
-    /* is it a string? */
-    if (is_string($json)) {
-	/*decode the json. the @ supresses any errors/warnings
-	 *and fills the last_error struct*/
-	@json_decode($json);
-	/*returns true if the last_error is no error*/
-	return (json_last_error() === JSON_ERROR_NONE);
-    }
-    /* bad json. no biscuit. */
-    return false;
-}
-
-function printFooter () {
-    exit;
-}
-?>
+		    foreach ($table_data as $row) {
+			$remaining = findRemainingTime($row[bh_starttime], $row[bh_lifespan]);
+			$active = "no";
+			if ($row[bh_active] == 1) {
+			    $active = "yes";
+			}
+			print "\n<tr>\n";
+			print "\t<td id='identifier' name='identifier'>" . $row[bh_index] . "</td>\n";
+			print "\t<td id='bh_active' name='bh_active'>" . $active . "</td>\n";
+			print "\t<td id='bh_route' name='bh_route'>" . $row[bh_route] . "</td>\n";
+			print "\t<td id='bh_lifespan' name='bh_lifespan'>" . $row[bh_lifespan] . "</td>\n";
+			print "\t<td>" . $row[bh_starttime] . "</td>\n";
+			print "\t<td>" . $remaining . "</td>\n";
+			print "\t<td>" . $row[bh_requestor] . "</td>\n";
+			# we hide this cell - we need to be able to pass along the index value but we
+			# don't want them to edit it. This works without modifying the tabledit js code. 
+			print "<td style='display:none' id='bh_index' name='bh_index'>" . $row[bh_index] . "</td>\n"; 
+			print "</tr>\n";
+		    }
+		    print "</tbody>\n</table>\n";
+		}
+		
+		function findRemainingTime ($start, $life) {
+		    $currentdate = new DateTime(date('m/d/Y H:i:s'));
+		    $startdate = new DateTime($start);
+		    $diff = $currentdate->diff($startdate);
+		    $hours = $diff->days*24 + $diff->h + ($diff->i/60);
+		    $remaining = $life - $hours;
+		    $fraction = $remaining - intval($remaining);
+		    $timeleft = intval($remaining). ":" . $fraction*60;
+		    if ($timeleft < 0) {
+			return "00:00";
+		    }
+		    return $timeleft;
+		}
+		
+		/*sanity check to make sure it's actually json data */
+		function validateJSON ($json=null) {
+		    /* is it a string? */
+		    if (is_string($json)) {
+			/*decode the json. the @ supresses any errors/warnings
+			 *and fills the last_error struct*/
+			@json_decode($json);
+			/*returns true if the last_error is no error*/
+			return (json_last_error() === JSON_ERROR_NONE);
+		    }
+		    /* bad json. no biscuit. */
+		    return false;
+		}
+		
+		function printFooter () {
+		    exit;
+		}
+		?>
 	    </div>
 	</div>
     </div>
+    <!-- modals handler -->
+    <script type="text/javascript">
+     <?php
+     // This has to be kept in the footers as we don't have the variable data yet.
+     // by the way, what we are doing here is using php to write javascript. 
+     // dirty!
+     print "modalSetFormSrc(\"mainpage\");\n";
+     print "mainpageFormInfo(" . $_SESSION['errFlag'] . ", \"" . $_SESSION['errMsg'] . "\");\n";
+     $_SESSION['errFlag'] = 0;
+     $_SESSION['errMsg'] = "";
+     ?>   
+    </script>
 </body>
