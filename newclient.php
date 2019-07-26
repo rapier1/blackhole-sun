@@ -17,11 +17,11 @@
  * limitations under the License. *
  */
 
-/* this is the user and group managment interface for the 
- * black hole project. I'm still nailing down the various 
- * portions that really matter but we need to start with 
- * some basics - username, password, class of user, contact
- * information, etc. 
+/* this is the client managment interface for the 
+ * black hole project. Basically, we can create a client
+ * that woudl correspond to an admintsrative network domain
+ * and define what networks this domain owns. This is used to 
+ * ensure that users have the right the BH a route. 
  */
 ?>
 <!DOCTYPE html>

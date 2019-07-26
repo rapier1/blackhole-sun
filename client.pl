@@ -27,21 +27,23 @@ use Email::Send;
 # functions in the php side match what
 # we generate here
 use PHP::Functions::Password qw(:all);;
-
+use Log::Log4perl;
 
 my %options = ();
 my $config = Config::Tiny->new();
 my $cfg_path = "/usr/local/etc/client.cfg";
+my $logger; # this is the object for the logger it is intantianted later
+
 
 sub readConfig {
     if (! -e $cfg_path) {
-        print "Config file not found at $cfg_path. Exiting.\n";
+        print STDERR "Config file not found at $cfg_path. Exiting.\n";
         exit;
     } else {
         $config = Config::Tiny->read($cfg_path);
         my $error = $config->errstr();
         if ($error ne "") {
-            print "Error: $error. Exiting.\n";
+            print STDERR "Error: $error. Exiting.\n";
             exit;
         }
     }
@@ -52,55 +54,55 @@ sub readConfig {
 sub validateConfig {
 #check key data
     if (! defined $config->{'keys'}->{'client_private_rsa'}) {
-        print "Missing client's private RSA key location in config file. Exiting.\n";
+        print STDERR "Missing client's private RSA key location in config file. Exiting.\n";
         exit;
     }
     if (! defined $config->{'keys'}->{'server_public_rsa'}) {
-        print "Missing server's public RSA key infomation in config file. Exiting.\n";
+        print STDERR "Missing server's public RSA key infomation in config file. Exiting.\n";
         exit;
     }
 #check interface data
     if (! defined $config->{'interface'}->{'host'}) {
-	print "ExaBGP interface host not defined. Exiting.\n";
+	print STDERR "ExaBGP interface host not defined. Exiting.\n";
 	exit;
     }
     if (! defined $config->{'interface'}->{'port'}) {
-	print "ExaBGP interface port not defined. Exiting.\n";
+	print STDERR "ExaBGP interface port not defined. Exiting.\n";
 	exit;
     }
 #check server data
     if (! defined $config->{'server'}->{'host'}) {
-	print "Server host not defined. Exiting.\n";
+	print STDERR "Server host not defined. Exiting.\n";
 	exit;
     }
     if (! defined $config->{'server'}->{'port'}) {
-	print "Server port not defined. Exiting.\n";
+	print STDERR "Server port not defined. Exiting.\n";
 	exit;
     }
 #test key files
     if (! -e $config->{'keys'}->{'client_private_rsa'}) {
-	print "The client's private RSA file is missing or not readable. Exiting.\n";
+	print STDERR "The client's private RSA file is missing or not readable. Exiting.\n";
 	exit;
     }
     if (! -e $config->{'keys'}->{'server_public_rsa'}) {
-	print "The server's public RSA file is missing or not readable. Exiting.\n";
+	print STDERR "The server's public RSA file is missing or not readable. Exiting.\n";
 	exit;
     }
 #check the database information
     if (! defined $config->{'database'}->{'host'}) {
-	print "Database host not defined. Exiting.\n";
+	print STDERR "Database host not defined. Exiting.\n";
 	exit;
     }
     if (! defined $config->{'database'}->{'port'}) {
-	print "Database port not defined. Exiting.\n";
+	print STDERR "Database port not defined. Exiting.\n";
 	exit;
     }
     if (! defined $config->{'database'}->{'user'}) {
-	print "Database user not defined. Exiting.\n";
+	print STDERR "Database user not defined. Exiting.\n";
 	exit;
     }
     if (! defined $config->{'database'}->{'password'}) {
-	print "Database password not defined. Exiting.\n";
+	print STDERR "Database password not defined. Exiting.\n";
 	exit;
     }
     # check the duration mix/max for bh requests
@@ -127,7 +129,7 @@ if (defined $options{f}) {
     if (-e $options{f}) {
         $cfg_path = $options{f};
     } else {
-        printf "Configuration file not found at $options{f}. Exiting.\n";
+        print STDERR "Configuration file not found at $options{f}. Exiting.\n";
         exit;
     }
 }
@@ -138,14 +140,14 @@ sub authorize {
     my $authorized = -1;
     
     #send the auth request to the server
-    print "ST: sending auth\n";
+    $logger->debug("ST: sending auth");
     print $socket "auth\n";
 
     #we will get two responses from the server
-    print "ST waiting on sig_srv\n";
+    $logger->debug("ST waiting on sig_srv");
     my $sig_srv = <$socket>;
     chomp $sig_srv;
-    print "ST waiting on dh_public_srv\n";
+    $logger->debug("ST waiting on dh_public_srv");
     my $dhpublic_srv = <$socket>;
     chomp $dhpublic_srv;
 
@@ -187,21 +189,21 @@ sub authorize {
     #again we convert that to text for ease of transmission
     $clientsecret = unpack (qq{H*}, $clientsecret);
 
-    print "Got the secret $clientsecret\n";
+    $logger->debug("Got the secret $clientsecret");
 
     # we now have all three elements that the server is waiting on
     # so send it over to them
     
     my $keydata = "$sig_client:$dhpublic_cli:$clientsecret\n";
-    print "ST: sending key data\n";
+    $logger->debug("ST: sending key data");
     print $socket $keydata;
     
     #wait until we get an auth response from the server
-    print "ST Waiting on auth\n";
+    $logger->debug("ST Waiting on auth");
     $authorized = <$socket>;
     chomp $authorized;
 
-    print "authorized = $authorized\n";
+    $logger->debug("authorized = $authorized");
 
     return $authorized;
 }
@@ -224,7 +226,7 @@ sub openExaSocket {
 sub instantiateServer {
     my $sock = IO::Socket::INET->new(LocalAddr => $config->{'server'}->{'host'},
 				       LocalPort => $config->{'server'}->{'port'},
-				       Listen => 5,
+				       Listen => SOMAXCONN,
 				       Proto => 'tcp',
 				       Reuse => 1,
 				       Timeout => 1,
@@ -245,15 +247,15 @@ sub mainloop {
 		close ($child);
 	    }
 	    IO::Socket::Timeout->enable_timeouts_on($child);
-	    $child->read_timeout(5);
-	    $child->write_timeout(5);
+	    $child->read_timeout(1);
+	    $child->write_timeout(1);
 	    # Child process
 	    while (defined (my $buf = <$child>)) {
 		chomp $buf;
 		print "buffer is $buf\n";
 		#inbound request is in json - no new lines/indents though
 		my $json = validateJson($buf);
-		print Dumper ($json);
+		print objectToString($json);
 		if ($json != -1) {
 		    print "About to process inbound request\n";
 		    my $status = processInboundRequests($child, $json);
@@ -287,11 +289,15 @@ sub validateJson {
 
 sub validateBHInput {
     my $json = shift;
+
+    # we are validating the input at the WebUI but we might as well maintain
+    # it here
     my $block = Net::Netmask->new2($json->{bh_route});
     if (!$block) {
 	#invalid ip address
 	return -1;
     }
+
     # verify that duration is a number greater than the configured
     # min and max (0 and 2160 by default)
     if (!looks_like_number($json->{bh_lifespan})) {
@@ -326,6 +332,13 @@ sub processInboundRequests {
 		return $valid;
 	    }
 
+	    # add it to the DB first in case there is an error adding it
+	    print "About to add route to database\n";
+	    my $db_stat = &addRouteToDB($json);
+	    if ($db_stat != 1) {
+		return "Error adding route to Database: $db_stat";
+	    }
+	    
 	    print "About to interface with ExaBGP\n";
 	    my $status = sendtoExaBgpInt ($child, $json, "add");
 	    # add route to the database
@@ -333,21 +346,20 @@ sub processInboundRequests {
 		return "Error interfacing with ExaBGP";
 	    }		
 
-	    print "About to add route to database\n";
-	    my $db_stat = &addRouteToDB($json);
-	    if ($db_stat != 1) {
-		return "Error adding route to Database: $db_stat";
-	    }
 	    return 1;
 	}
 	case /listexisting/ {
 	    #get a list of the existing blackhole routes from the DB
-	    my $listing = &listExistingBH("all"); #returns a json object
+	    my $listing = &listExistingBH("all",
+					  $json->{'bh_client_id'},
+		                          $json->{'bh_user_role'}); #returns a json object
 	    return $listing;
 	}
 	case /listactive/ {
 	    # get a list of only active BH routes from the DB
-	    my $listing = &listExistingBH("active"); #returns json
+	    my $listing = &listExistingBH("active",
+					  $json->{'bh_client_id'},
+		                          $json->{'bh_user_role'}); #returns json
 	    return $listing;
 	}
 	case /edit/ {
@@ -391,7 +403,10 @@ sub processInboundRequests {
 	}
 	case /pushchanges/ {
 	    # this forces the db to push all pending changes out to the
-	    # exabgp server
+	    # exabgp server. Essentially it normalizes the bh database to the
+	    # exabgp server.
+	    my $status = &pushChanges($child);
+	    return $status;
 	}
 	case /deleteselection/ {
 	    #delete one blackhole route
@@ -407,11 +422,6 @@ sub processInboundRequests {
 	    # ?
 	    # profit
 
-	}
-	case /dump/ {
-	    #get a listing of all route information on the exbgp server
-	    my $status = senndtoExaBgpInt ($child, $json, "dump");
-	    return $status;	    
 	}
     }
 }
@@ -431,6 +441,9 @@ sub sendtoExaBgpInt {
 	return;
     }
     my $status = &blackHole($exa_socket, $request, $action);
+    print objectToString($request);
+    print "I sent $request and $action and received $status\n";
+    print objectToString($request);
     close ($exa_socket);
     return $status;
 }
@@ -443,25 +456,62 @@ sub sendtoExaBgpInt {
 sub listExistingBH {
     # get the database handle
     my $action = shift @_; # to access different subsets of data
+    my $client_id = shift @_;
+    my $user_role = shift @_;
     my $dbh = &DBSocket();
+    my $query;
+    my $sth;
     my $result_json;
+    my @name_array;
     my @results;
     if ($dbh =~ /Err/) {
 	my $error = $dbh;
 	$dbh->disconnect();
 	return ($error);
     }
-    # prepare the query
-    my $query = "SELECT * FROM bh_routes";
-    if ($action eq "active") {
-	$query .= "  WHERE bh_active = 1";
+
+    # build an array that lets us translate the client_id into the
+    # client_name
+    $query = "SELECT bh_client_id, bh_client_name
+              FROM bh_clients";
+    $sth = $dbh->prepare($query);
+    $sth->execute();
+    while (my @row = $sth->fetchrow_array()) {
+	$name_array[$row[0]] = $row[1];
     }
-    my $sth = $dbh->prepare($query);
+    $sth->finish();
+
+    # determine what filters we are going to use
+    if ($user_role == 1) {
+	if ($action eq "active") {
+	    #this is regular user so we need to limit their view
+	    $query = "SELECT * 
+                      FROM bh_routes 
+                      WHERE bh_client_id = ?
+                      AND bh_active = 1";
+	} else {
+	    $query = "SELECT * 
+                      FROM bh_routes 
+                      WHERE bh_client_id = ?";
+	}
+    } else {
+	# they are staff or BH manager
+	$query = "SELECT * FROM bh_routes";
+	if ($action eq "active") {
+	    $query .= " WHERE bh_active = 1";
+	}
+    }
+    $sth = $dbh->prepare($query);
+    if ($user_role == 1) {
+	$sth->bind_param(1, $client_id);
+    }
     $sth->execute();
     #loop through the results and build the array of hashrefs
     while (my $result = $sth->fetchrow_hashref()) {
+	$result->{'bh_client_name'} = $name_array[$result->{'bh_client_id'}];
 	push @results, $result;
     }
+    
     $sth->finish();
     $dbh->disconnect();
     #convert to json
@@ -498,15 +548,23 @@ sub blackHole {
     $request_struct{'action'} = $action;
     $request_struct{'route'} = $route;
     my $request = encode_json \%request_struct;
-    
+
     print $srv_socket $request . "\n";
 
     $srv_socket->read($status, 32768); # read to 32k or the end of line
+
+    print "Blackhole status is $status\n";
+    
+    # if we are dumping routes we'll just get a blob of text
+    if ($action eq "dump") {
+	return $status;
+    }
+
+    # for other requests we geta success status
     if ($status eq "Success") {
 	return 1;
-    } else {
-	return -1;
     }
+    return -1;
 }    
 
 
@@ -558,20 +616,23 @@ sub editRouteInDB {
 
     # get the original route based on the index number
     
-    
+    my %route;
     if ($json->{'bh_active'} == 0) {
-	sendtoExaBgpInt("", $route_orig[0], "del");
+	$route{'bh_route'} = $route_orig[0];
+	sendtoExaBgpInt("", \%route, "del");
 	#withdraw the route
     }
 
+    print objectToString($json);
     if ($json->{'bh_active'} == 1) {
 	# if the new route is different than the old route then
 	# withdraw it first
 	if ($json->{'bh_route'} ne $route_orig[0]) {
-	    sendtoExaBgpInt("", $route_orig[0], "del");
+	    $route{'bh_route'} = $route_orig[0];
+	    sendtoExaBgpInt("", \%route, "del");
 	}
 	#add the route
-	sendtoExaBgpInt("", $json->{'bh_route'}, "add");
+	sendtoExaBgpInt("", $json, "add");
     }
 
     # update the database with the new information
@@ -605,24 +666,29 @@ sub editRouteInDB {
 # ex server I write the the DB and then trigger a process that
 # normalizes the ex server to the DB. 
 sub addRouteToDB {
-    my $json = shift;
+    my $json = shift @_;
     my $dbh = &DBSocket();
+    my $query;
+    my $sth;
     my $error;
+    
     #    local $dbh->{TraceLevel} = "3|SQL";
-    my $query = "INSERT INTO bh_routes
+    $query = "INSERT INTO bh_routes
 			     (bh_route,
 			      bh_lifespan,
 			      bh_starttime,
 			      bh_requestor,
+			      bh_client_id,
 			      bh_active)
                         VALUES
-			     (?,?,?,?,1);";
-    my $sth = $dbh->prepare($query);
+			     (?,?,?,?,?,1);";
+    $sth = $dbh->prepare($query);
     my $datetime = $json->{'bh_startdate'} . " " . $json->{'bh_starttime'};
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
     $sth->bind_param(3, $datetime);
     $sth->bind_param(4, $json->{'bh_requestor'});
+    $sth->bind_param(5, $json->{'bh_client_id'});
     $sth->execute();
     #need error checking 
     if ($sth->err()) {
@@ -807,10 +873,11 @@ sub addUser {
     my $json = shift;
     my $genpass = App::Genpass->new();
     my $newPassword = $genpass->generate(1); #initial password for user
+    print "initial password is $newPassword\n";
     my $passhash = password_hash($newPassword, PASSWORD_BCRYPT);
     my $dbh = &DBSocket();
     print "I have a socket in addUser!\n";
-    print Dumper ($json);
+    print objectToString($json);
     my $query = "INSERT INTO bh_users 
 		        (bh_user_name, bh_user_fname, bh_user_lname, 
                          bh_user_email, bh_user_affiliation, bh_user_role,
@@ -1020,6 +1087,93 @@ sub deleteClient {
     return "Success";
 }
 
+# normalize the exabgp server to the database 
+sub pushChanges {
+    my $child = shift @_;
+    # we need to grab the list of routes in the exabgp server
+    my $results = sendtoExaBgpInt ($child, "", "dump");
+    my %exablocks; #blocks from the server
+    my %dbblocks; # blocks from the database
+    my %protected; # blocks from the protected config information
+
+    # these are the full lines returned by the exabgp server
+    my @exaroutes = split (/\n/, $results);
+
+    #we really only need the routes from it though
+    # line format is
+    # neighbor ip proto unicast route nexthop target
+    # so we can split the line and just grab the routes and drop them into
+    # an array
+
+    foreach my $exaroute (@exaroutes) {
+	# data is whitespace separated. 
+	my @split_route = split ("\ +", $exaroute);
+	$exablocks{$split_route[4]} = 1;
+    }
+
+    # we now have all of the exabgp routes in exablocks
+    # get the list of *active* routes from the database
+    my $dbh = &DBSocket;
+    my $query = "SELECT bh_route 
+                 FROM   bh_routes
+                 WHERE  bh_active =1";
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    if ($sth->err()) {
+	#need to write this to a log
+	print "Error in updateloop: $sth->errstr()";
+    }
+    while (my @result = $sth->fetchrow_array()) {
+	$dbblocks{$result[0]} = 1;
+    }
+    $sth->finish();
+
+    #we now have two hashes of blocks
+    #if there is a block in the exabgp set that is
+    #not in the db set then we want to delete it
+    #conversely, if it is the db set and not exabgp then we
+    #want to add it
+
+    # there may be routes that must be maintained even if they aren't in the
+    # the database. That's a configuration option so we need to ensure we
+    # don't test those
+    if (defined $config->{'protected_routes'}->{'routes'}) {
+	#this may be a CSV list so we need to turn it into an array
+	%protected = map {trim($_) => 1} split (",", $config->{'protected_routes'}->{'routes'});
+    }
+
+    my %route;
+    foreach my $exa (keys %exablocks) {
+	#check any protected routes
+	if (defined $protected{$exa}) {
+	    next;
+	}
+	if (!defined $dbblocks{$exa}) {
+	    print "$exa is not in database: delete\n";
+	    $route{'bh_route'} = $exa;
+	    print objectToString(%route);
+	    sendtoExaBgpInt("", \%route, "del");
+	}
+    }
+
+    foreach my $db (keys %dbblocks) {
+	if (!defined $exablocks{$db}) {
+	    print "$db is not in exabgp: adding\n";
+	    $route{'bh_route'} = $db;
+	    print objectToString(%route);
+	    sendtoExaBgpInt("", \%route, "add");
+	}
+    }
+    return 1;
+}
+
+# strip leading and trailing whitespace
+sub trim {
+    my $s = shift;
+    $s =~ s/^\s+|\s+$//g;
+    return $s
+}    
+
 sub updateloop {
     # loop forever!
     my $pid = fork();
@@ -1056,7 +1210,11 @@ sub updateloop {
 		# eliminate those routes. We don't need to specify the first
 		# argument as it's only used to print errors to STDIN
 		# TODO: create real logging for this
-		sendtoExaBgpInt("", $result->{'bh_route'}, "del");
+		my %route;
+		$route{'bh_route'} = $result->{'bh_route'};
+		print "Sending to exabgp from updateloop\b";
+		print objectToString(%route);
+		sendtoExaBgpInt("", \%route, "del");
 	    }   
 	    sleep 60;
 	}
@@ -1065,8 +1223,107 @@ sub updateloop {
     return;
 }
 
+#
+# Copyright 2006 NetMesh Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+use overload;
+
+#####
+# Convert a hierarchic data structure into a string. Does not detect loops.
+
+sub objectToString {
+    my $obj    = shift; # object to convert to string
+    my $indent = shift; # indentation level. Defaults to 0.
+
+    $indent = 0 unless( defined( $indent ));
+    return 'undef' unless( defined( $obj ));
+
+    my $ret = '';
+
+    my $strval = overload::StrVal( $obj );
+
+    my ($realpack, $realtype, $id) = ($strval =~ /^(?:(.*)\=)?([^=]*)\(([^\(]*)\)$/);
+    $realpack = '' unless( $realpack );
+    $realtype = '' unless( $realtype );
+    $id = '' unless( $id );
+
+    if( $realpack eq "Math::BigInt" ) {
+        $ret .= ref( $obj ) . " { ";
+        $ret .= $obj->bstr;
+        $ret .= " }";
+    } elsif( $realtype eq "ARRAY" ) {
+        $ret .= ref( $obj ) . " {\n";
+        # check whether this is a pseudo-hash
+        if( @{$obj} && overload::StrVal( @{$obj}[0] ) =~ m!^pseudohash=! ) {
+            my $pseudo = @{$obj}[0];
+            foreach my $k ( keys %{$pseudo} ) {
+                $ret .= indent( $indent+1 );
+                $ret .= sprintf( "%-32s => %s\n", $k, objectToString( @{$obj}[ $pseudo->{$k} ], $indent+1 ));
+            }
+        } else {
+            foreach my $o ( @{$obj} ) {
+                $ret .= indent( $indent+1 );
+                if( ref( $o ) eq "HASH" || ref( $o ) eq "ARRAY" ) {
+                    $ret .= objectToString( $o, $indent+1 ) . "\n";
+                } else {
+                    if( defined( $o )) {
+                        $ret .= objectToString( $o, $indent+1 ) . "\n";
+                    } else {
+                        $ret .= "<<undef>>\n";
+                    }
+                }
+            }
+        }
+        $ret .= indent( $indent ) . "}\n";
+
+    } elsif( $realtype eq "HASH" ) {
+        $ret .= ref( $obj ) . " {\n";
+        foreach my $k ( keys %{$obj} ) {
+            $ret .= indent( $indent+1 );
+            $ret .= sprintf( "%-32s => %s\n", $k, objectToString( $obj->{$k}, $indent+1 ));
+        }
+        $ret .= indent( $indent ) . "}";
+    } else {
+        $ret .= $obj;
+    }
+    return $ret;
+}
+
+#####
+# indent so many times
+sub indent {
+    my $indent = shift;
+
+    $indent = 0 unless( defined( $indent ));
+    my $ret = '';
+    for( my $i=0 ; $i<$indent ; ++$i ) {
+        $ret .= '    ';
+    }
+    return $ret;
+}
+
+
 &readConfig();
 &validateConfig();
+#start the logger
+if (! -e $config->{'logconfig'}->{'path'}) {
+    die "canot find log config file";
+}
+Log::Log4perl::init($config->{'logconfig'}->{'path'});
+$logger = Log::Log4perl->get_logger('logger');
+
 my $server = &instantiateServer(); #get the server socket
 # we need a loop that will ,every minute or so, query the db
 # to update any route information in terms of the routes expiring.

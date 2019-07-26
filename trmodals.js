@@ -110,7 +110,7 @@ function mainpageFormInfo(flag, msg) {
 	if (flag == 1) {
 	    modalMessage('success', msg);
 	}
-	if (flag != 1) {
+	if (flag == -1) {
 	    modalMessage('error', msg);
 	}
     }

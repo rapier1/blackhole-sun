@@ -219,7 +219,7 @@ sub addBHRoute {
     return;
 }
     
-sub dumpRoute {
+sub dumpRoutes {
     # this is a test to see if we can grab the data from exabgp.
     # this isn't the way I'd like to do it but it seems to work effectively
     # so I'm not going to complain too much right now. 

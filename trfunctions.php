@@ -131,8 +131,8 @@ function logIn($username, $password)
             $_SESSION["fname"] = $queryResult["bh_user_fname"];
             $_SESSION["lname"] = $queryResult["bh_user_lname"];
             $_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
-	    $_SESSION['bh_client_id'] = $queryResult["bh_user_affiliation"];
-	    $_SESSION["timer"]= time();
+            $_SESSION['bh_client_id'] = $queryResult["bh_user_affiliation"];
+            $_SESSION["timer"]= time();
             if ($queryResult["bh_user_force_password"]) {
                 header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/changepass.php");    
             } elseif ($queryResult["bh_user_role"] == 4) {
@@ -674,6 +674,33 @@ function validateCIDR($cidr) {
     return -1;
 }
 
+/* we want to ensure that all submissions have a mask on them
+ * in case the user doesn't add one then we assume it's a single
+ * ip and add either a /32 for v4 or /128 for v6
+ */
+function normalizeRoute ($route) {
+    list ($address, $mask) = explode ("/", $route);
+    # make sure we have *something* here
+    if (!isset($address)) {
+        return -1;
+    }
+    /* they may not supply a mask so we need to assume that if they
+     * don't then it's a single address 32 for v4 & 128 for v6*/
+    if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+        if (!isset($mask)) {
+            $mask = 32;
+        }
+        return ($address . "/" . $mask);
+    }
+    if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+        if (!isset($mask)) {
+            $mask = 128;
+        }
+        return ($address . "/" . $mask);
+    }
+    return -1;
+}
+
 /* a user might enter a CSV list with extra commas or spaces or
  * even mix and match them on the same line so fix it for them
  */
@@ -695,7 +722,7 @@ function normalizeListInput ($list) {
  * $client is the client/customer id as retreived from the user profile
  */
 
-function validateRoute ($route, $client) {
+function validateRoute ($route, $clientid) {
     /* we are importing a class to handle this but only
      * include it if we are goign to be using it. Ya know?
      */
@@ -704,8 +731,8 @@ function validateRoute ($route, $client) {
     /* first we are going to ensure that the supplied route is actually 
      * a valid ip address
      */
-    if (validateCIDR($address) == -1) {
-        return array (-1, "This address is not valid IPv4 or IPv6");
+    if (validateCIDR($route) == -1) {
+        return array (-1, "This address is not valid IPv4 or IPv6", null);
     }
     
     /* next by get the route blocks from the bh_clients table */
@@ -715,7 +742,7 @@ function validateRoute ($route, $client) {
               WHERE bh_client_id = :clientid";
     try{
         $sth = $dbh->prepare($query);
-        $sth->bindParam(':clientid', $client_id, PDO::PARAM_STR);        
+        $sth->bindParam(':clientid', $clientid, PDO::PARAM_STR);        
         $sth->execute();
         $result = $sth->fetch(PDO::FETCH_ASSOC);
     }
@@ -723,17 +750,15 @@ function validateRoute ($route, $client) {
         // TODO need beter exception message passing here
         $error =  "Something went wrong while interacting with the database:"
                . $e->getMessage();
-        return array(-1, $error);
+        return array(-1, $error, null);
     }
     if (! isset($result)) {
         // The DB didn't return a result or there was an error
         $error = "No results were returned. There may be a problem with the database.";
-        return array (-1, $error);
+        return array (-1, $error, null);
     }
-    $blocks_obj = json_decode($result['bh_client_blocks']);
-    /*we specifically need the 'blocks' array */
-    $blocks = $blocks_obj->{'blocks'};
-    
+    $blocks = json_decode ($result['bh_client_blocks'], true);
+
     /* now that we have the blocks we need to get the upper and lower
      * ranges of the user submitted route if they have a cidr mask */
     list ($upper, $lower) = explodeAddress($route);
@@ -749,19 +774,19 @@ function validateRoute ($route, $client) {
 
     $cidrtest = new CIDR();
 
-    foreach ($blocks as $block) {
+    foreach ($blocks['blocks'] as $block) {
         $uppertest = $cidrtest->match($upper, $block);
         $lowertest = $cidrtest->match($lower, $block);
         if ($uppertest === true and $lowertest === true) {
-            return array (1, null);
+            return array (1, null, normalizeRoute($route));
         }
     }
     /* no matches*/
-    return array (-1, "The IP address is not in range of any address blocks you control");   
+    return array (-1, "The IP address is not in range of any address blocks you control", null);   
 }
 
 function explodeAddress ($route) {
-    list($address, $mask) = epxlode ("/", $route);
+    list($address, $mask) = explode ("/", $route);
 
     /* if the mask is not set then it's a single address and not a range */
     if (!isset($mask)) {
@@ -774,8 +799,8 @@ function explodeAddress ($route) {
             return array(-1, "Inavlid CIDR mask for IPv4");
         }
         /* get and return the network and broadcast */
-        $network = long2ip((ip2long($cidr[0])) & ((-1 << (32 - (int)$cidr[1]))));
-        $broacast = long2ip((ip2long($range[0])) + pow(2, (32 - (int)$cidr[1])) - 1);        
+        $network = long2ip((ip2long($address)) & ((-1 << (32 - (int)$mask))));
+        $broadcast = long2ip((ip2long($network)) + pow(2, (32 - (int)$mask)) - 1);        
         return array($network, $broadcast);
     }
 
