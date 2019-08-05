@@ -10,7 +10,9 @@ $args = array (
     'action' => FILTER_SANITIZE_STRING,
     'bh_active' => FILTER_VALIDATE_INT,
     'bh_lifespan' => FILTER_VALIDATE_INT,
-    'bh_index' => FILTER_VALIDATE_INT
+    'bh_index' => FILTER_VALIDATE_INT,
+    'bh_client_id' => FILTER_VALIDATE_INT,
+    'bh_user_role' => FILTER_VALIDATE_INT
 );
 
 $input = filter_input_array(INPUT_POST, $args);

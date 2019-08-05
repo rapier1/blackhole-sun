@@ -131,14 +131,14 @@ function logIn($username, $password)
             $_SESSION["fname"] = $queryResult["bh_user_fname"];
             $_SESSION["lname"] = $queryResult["bh_user_lname"];
             $_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
-            $_SESSION['bh_client_id'] = $queryResult["bh_user_affiliation"];
+            $_SESSION["bh_client_id"] = $queryResult["bh_user_affiliation"];
             $_SESSION["timer"]= time();
             if ($queryResult["bh_user_force_password"]) {
                 header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/changepass.php");    
             } elseif ($queryResult["bh_user_role"] == 4) {
-                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/management.php");    
+                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/usermanagement.php");    
             } else {
-                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/mainpage.php");
+                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/routes.php");
             }
             //die();
             return 0; //return 0 to notify password match success
@@ -152,12 +152,12 @@ function sessionTimer() {
     $login_session_duration = 10*60; // ten minutes of inactivity 
     $current_time = time(); 
     if(isset($_SESSION['timer'])){  
-	if(((time() - $_SESSION['timer']) > $login_session_duration)){ 
-	    header("Location:http://". $_SERVER['SERVER_NAME'] . "/blackholesun/timeout.php");
-	}
-	// update the time
-	$_SESSION["timer"] = time();
-	return;
+        if(((time() - $_SESSION['timer']) > $login_session_duration)){ 
+            header("Location:http://". $_SERVER['SERVER_NAME'] . "/blackholesun/timeout.php");
+        }
+        // update the time
+        $_SESSION["timer"] = time();
+        return;
     }
     // Somehow the session time isn't set at all. Bounce them to the timeout page anyway
     header("Location:http://". $_SERVER['SERVER_NAME'] . "/blackholesun/timeout.php");
@@ -415,7 +415,7 @@ function newClientForm ($data) {
     $form .= "<div class='form-group'><label for='client-asns'> ASNs:</label><input type='text' name='client-asns' 
                class='form-control' value='" . $data['client-asns'] . "'></div>\n";
     $form .= "<div class='form-group'><label for='client-vlans'> VLANs:</label><input type='text' name='client-vlans' 
-               class='form-control' value='" . $data['client-valns'] . "'></div>\n";
+               class='form-control' value='" . $data['client-vlans'] . "'></div>\n";
     $form .= "<div class='form-group'><label for='client-blocks'> Blocks:</label><textarea 
                rows='4' columns='40' name='client-blocks' 
                class='form-control' value='" . $data['client-blocks'] . "' required></textarea></div>\n";
@@ -473,7 +473,7 @@ function loadClientForm ($client_data, $postFlag) {
         $name = $client_data['client-name'];
         $client_id = $client_data['bh_client_id'];
         $ASNs = $client_data['client-asns'];
-        $vlans = $client_data['vlans'];
+        $vlans = $client_data['client-vlans'];
         $blocks = $client_data['client-blocks']; 
     }
     
@@ -484,7 +484,7 @@ function loadClientForm ($client_data, $postFlag) {
     $form .= "<div class='form-group'><label for='client-name'> Name:</label><input type='text' name='client-name' class='form-control' value='$name' required></div>\n";
     $form .= "<div class='form-group'><label for='client-asns'> ASNs:</label><input type='text' name='client-asns' class='form-control' value='$ASNs'></div>\n";
     $form .= "<div class='form-group'><label for='client-vlans'> VLANs:</label><input type='text' name='client-vlans' class='form-control' value='$vlans'></div>\n";
-    $form .= "<div class='form-group'><label for='client-blocks'> Blocks:</label><input type='text' name='client-blocks' class='form-control' value='$blocks' required></div>\n";
+    $form .= "<div class='form-group'><label for='client-blocks'> Blocks:</label><textarea rows='4' columns='40' name='client-blocks' class='form-control' required>" . $blocks . "</textarea></div>\n";    
     $form .= "<button type='submit' class='btn btn-lg btn-success'>Update Client</button></form>";
     return array(0, $form);
 }
@@ -595,7 +595,7 @@ function loadUserForm ($user_id, $user_class, $user_id_session)
 function changePasswordWidget () {
     $form  = "<form id='updatePassword' role='form' class='form-horizontal col-8' action='"  .
              htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
-    $form .= "<input type='hidden' name='form_src' value='management' />\n";
+    $form .= "<input type='hidden' name='form_src' value='userManagement' />\n";
     $form .= "<input type='hidden' name='action' value='changePassword' />\n";
     $form .= "<input type='hidden' name='bh_user_id' value='" . $_SESSION['bh_user_id'] . "' />\n";
     $form .= "<div class='form-group'><label for='cpass'> Current Password:</label><input type='password' name='cpass' class='form-control' value='' required></div>\n";
@@ -635,11 +635,7 @@ function deleteClientWidget  ($client_id) {
 
 function prewrap($text) {
     print("<tr><td align='left'><table border=1><tr><td valign='top' align='left'><pre>");
-    if (is_array($text)) {
-        print_r($text);
-    } else {
-        print($text);
-    }
+    var_dump ($text);
     print("</pre></td></tr></table></td></tr>");
 }
 
@@ -649,6 +645,7 @@ function prewrap($text) {
  */
 function validateCIDR($cidr) {
     list ($address, $mask) = explode ("/", $cidr);
+
     # make sure we have *something* here
     if (!isset($address)) {
         return -1;
@@ -679,7 +676,12 @@ function validateCIDR($cidr) {
  * ip and add either a /32 for v4 or /128 for v6
  */
 function normalizeRoute ($route) {
-    list ($address, $mask) = explode ("/", $route);
+    if (strpos($route, "/") !== false) {
+        list ($address, $mask) = explode ("/", $route);
+    } else {
+        $address = $route;
+    }
+
     # make sure we have *something* here
     if (!isset($address)) {
         return -1;
@@ -707,6 +709,7 @@ function normalizeRoute ($route) {
 function normalizeListInput ($list) {
     $nospaces = preg_replace("/\s+/", ",", $list);
     $noextracommas = preg_replace("/,+/", ",", $nospaces);
+    $notrailingcomma = preg_replace("/,+$/", "", $noextracommas);
     return $noextracommas;
 }
 
@@ -728,9 +731,14 @@ function validateRoute ($route, $clientid) {
      */
     include_once("./CIDR.php");
 
+    /* ensure that the address is in properl IP/mask format */
+
+    $route = normalizeRoute($route);
+    
     /* first we are going to ensure that the supplied route is actually 
      * a valid ip address
      */
+
     if (validateCIDR($route) == -1) {
         return array (-1, "This address is not valid IPv4 or IPv6", null);
     }
@@ -778,7 +786,7 @@ function validateRoute ($route, $clientid) {
         $uppertest = $cidrtest->match($upper, $block);
         $lowertest = $cidrtest->match($lower, $block);
         if ($uppertest === true and $lowertest === true) {
-            return array (1, null, normalizeRoute($route));
+            return array (1, null, $route);
         }
     }
     /* no matches*/
@@ -786,6 +794,7 @@ function validateRoute ($route, $clientid) {
 }
 
 function explodeAddress ($route) {
+
     list($address, $mask) = explode ("/", $route);
 
     /* if the mask is not set then it's a single address and not a range */

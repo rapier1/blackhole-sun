@@ -103,11 +103,11 @@
 		$_SESSION['errFlag'] = 0;
 		$_SESSION['errMsg'] = "";
 		if ($_SESSION['bh_user_role'] == 4) {
-		    print "<p class='navbar-right navbar-btn'><button id='management' 
+		    print "<p class='navbar-right navbar-btn'><button id='userManagement' 
                            onClick=\"window.location='http://" .
 			  $_SERVER['SERVER_NAME'] .
-			  "/blackholesun/management.php'\"  type='button' 
-                           class='btn btn-sm btn-primary'>Managment</button></p>";
+			  "/blackholesun/usermanagement.php'\"  type='button' 
+                           class='btn btn-sm btn-primary'>Users</button></p>";
 		}
 		?>
 		<p class="navbar-right navbar-btn">
@@ -133,9 +133,11 @@
 		    <input type="submit" name="submit" value="Active Routes">
 		</form>
 		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
+		    <input type="hidden" name="user_role" value="<?php echo $_SESSION['user_role']?>">
+		    <input type="hidden" name="client_id" value="<?php echo $_SESSION['client_id']?>">
 		    <input type="hidden" name="request" value="pushchanges">
 		    <input type="hidden" name="action" value="pushchanges">
-		    <input type="submit" name="submit" value="Push Changes">
+		    <input type="submit" name="submit" value="Normalize ExaBGP">
 		</form>
 	    </div>
 	    <div class="col-sm-8 text-left">
@@ -179,8 +181,8 @@
 		date_default_timezone_set('America/New_York');
 		
 		if (isset($_POST['submit'])) {
-                    /*We have form data*/
-		    /* many of the actions here require passing along the users
+		    /*We have form data*/
+		    /* Man of the actions here require passing along the users
 		     * affiliation and role so append it to the POST data
 		     */
 		    $_POST['bh_client_id'] = $_SESSION['bh_client_id'];

@@ -61,8 +61,8 @@ function modalMessage(type, messageBody){
     $(modalID[type]).modal('show');
 }
 
-function managementFormInfo(flag, msg) {
-    if (formSrc == "management") {
+function userManagementFormInfo(flag, msg) {
+    if (formSrc == "userManagement") {
 	if (flag == 0) {
 	    modalMessage('success', msg);
 	}

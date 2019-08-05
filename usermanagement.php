@@ -40,7 +40,7 @@
     if ($_SESSION["bh_user_role"] != 4)
         // they don't have appropriate access priveliges. Bounce them to the main page
     {
-        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/mainpage.php");
+        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/routes.php");
         die();
     }
     ?>
@@ -99,7 +99,7 @@
                 </ul>
 		<p class="navbar-right navbar-btn"><button id="newUser" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newuser.php'" type="button" class="btn btn-sm btn-primary">New User</button></p>
 		<p class="navbar-right navbar-btn"><button id="customers" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/customers.php'" type="button" class="btn btn-sm btn-primary">Customers</button></p>		
-		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/mainpage.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
+		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/routes.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'" type="button" class="btn btn-sm btn-primary">Logout</button></p>
             </div><!--/.nav-collapse -->
         </div> <!-- END nav container -->
@@ -246,8 +246,8 @@
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doign here is using php to write javascript. 
      // dirty!
-     print "modalSetFormSrc(\"management\");";
-     print "managementFormInfo(".$errFlag.", \"".$errMsg."\");";
+     print "modalSetFormSrc(\"usermanagement\");";
+     print "userManagementFormInfo(".$errFlag.", \"".$errMsg."\");";
      ?>   
     </script>
 </div> <!-- main body-->

@@ -39,7 +39,7 @@
     if ($_SESSION["bh_user_role"] != 4)
         // they don't have appropriate access priveliges. Bounce them to the main page
     {
-        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/mainpage.php");
+        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/routes.php");
         die();
     }
     ?>
@@ -99,7 +99,7 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
 		</ul>
-		<p class="navbar-right navbar-btn"><button id="management" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/management.php'" type="button" class="btn btn-sm btn-primary">Management</button></p>
+		<p class="navbar-right navbar-btn"><button id="userManagement" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/usermanagement.php'" type="button" class="btn btn-sm btn-primary">Users</button></p>
                 <p class="navbar-right navbar-btn"><button id="newClient" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newclient.php'" type="button" class="btn btn-sm btn-primary">New Customer</button></p>
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
@@ -120,9 +120,11 @@
 	$_SESSION['editclient'] = $_POST['editclient'];
 	// we want to edit a client so implement that here
 	list ($error, $form) = loadClientForm($_POST['editclient'], 0);
-	print $form;
-	print "<br>";
+    print "<table align='center'> <tr><td>";
+    print $form;
+    print "<br>";
 	print deleteClientWidget($_POST['editclient']);
+    print "</td></tr></table>";
     } elseif ($_POST['action'] == "updateClient") {
         // client edit has been submitted. handle it
 	//prewrap ($_POST);
@@ -135,7 +137,7 @@
 	if (!isset($_POST['client-vlans'])) {
 	    $_POST['client-vlans'] = "";
 	}
-	$_POST['client-asns'] = normalizeListInput($_POST['client-vlans']);
+	$_POST['client-vlans'] = normalizeListInput($_POST['client-vlans']);
 	
 	
 	// first thing we need to do is validate the submitted
@@ -184,9 +186,9 @@
 	$form .= "<input type='radio' name='confirm' value='1'> Yes </input><br>\n";
 	$form .= "<input type='radio' name='confirm' value='0'> No </input><br>\n";
 	$form .= "<button type='submit' class='btn btn-lg btn-danger'>Confirm Delete Client</button></form>";
-        print "<table align='center'> <tr><td>";
-        print $form;
-        print "</td></tr></table>";
+    print "<table align='center'> <tr><td>";
+    print $form;
+    print "</td></tr></table>";
     } elseif ($_REQUEST['action'] == "confirmDeleteClient"){
 	if ($_POST['confirm'] == 0) {
 	    goto listclients;

@@ -9,7 +9,7 @@
 function parseResponse ($action, $data) {
     switch ($action) {
 	case 'blackhole':
-        confirmBH($data);
+            confirmBH($data);
 	    break;
 	case 'listexisting':
 	    formatList($data);
@@ -57,6 +57,7 @@ function confirmBH($data) {
  */
 function formatList($request) {
     $table_data = json_decode($request, true);
+    
     // the ajax can't use the client process
     // so we need to update the database in a different function
     // in this case editdb.php. I dislike breaking up the

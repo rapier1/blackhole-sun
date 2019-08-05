@@ -39,7 +39,7 @@
     if ($_SESSION["bh_user_role"] != 4)
         // they don't have appropriate access priveliges. Bounce them to the main page
     {
-        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/mainpage.php");
+        header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/routes.php");
         die();
     }
     ?>
@@ -92,7 +92,7 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
 		</ul>
-		<p class="navbar-right navbar-btn"><button id="managment" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/management.php'" type="button" class="btn btn-sm btn-primary">Management</button></p>
+		<p class="navbar-right navbar-btn"><button id="userManagment" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/usermanagement.php'" type="button" class="btn btn-sm btn-primary">Users</button></p>
 		<p class="navbar-right navbar-btn"><button id="Customers" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/customers.php'" type="button" class="btn btn-sm btn-primary">Customers</button></p>
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
@@ -111,7 +111,7 @@
 	if (!isset($_POST['client-vlans'])) {
 	    $_POST['client-vlans'] = "";
 	}
-	$_POST['client-asns'] = normalizeListInput($_POST['client-vlans']);
+	$_POST['client-vlans'] = normalizeListInput($_POST['client-vlans']);
 	
 	// first thing we need to do is validate the submitted
 	// IP addresses and CIDR blocks. I want to provide feedback on 

@@ -42,7 +42,7 @@ $errMsg = "";
 if (!empty($_SESSION["username"]))
 {
     //print 'You are already logged in, ' . $_SESSION["username"];
-    header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/mainpage.php");
+    header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/routes.php");
 }
 else if ($_SERVER["REQUEST_METHOD"] == "POST")
 {
@@ -63,7 +63,7 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
 	$inputs["bhUsername"] = scrubInput($_REQUEST["bhUsername"]);
 	$inputs["bhPassword"] = scrubInput($_REQUEST["bhPassword"]);
         
-        // The logIn function sets all of the session variables and the redirect to the mainpage.
+        // The logIn function sets all of the session variables and the redirect to the routes page.
         // the login function is defined in trfunctions.php
 	$pwdMatchFlag = logIn($inputs["bhUsername"],$inputs["bhPassword"]);
 

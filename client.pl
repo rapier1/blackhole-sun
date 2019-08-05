@@ -32,7 +32,7 @@ use Log::Log4perl;
 my %options = ();
 my $config = Config::Tiny->new();
 my $cfg_path = "/usr/local/etc/client.cfg";
-my $logger; # this is the object for the logger it is intantianted later
+my $logger; # this is the object for the logger it is instantianted later
 
 
 sub readConfig {
@@ -158,7 +158,8 @@ sub authorize {
     #verify the signature
     my $rsapub = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
     if (! $rsapub->verify_message($sig_srv, $dhpublic_srv)) {
-	print "Could not verify the RSA signature for the server. Exiting.\n";
+	print STDERR "Could not verify the RSA signature for the server. Exiting.\n";
+	$logger->error("Could not verify the RSA signature for the server. Exiting.");
 	exit;
     }    
     
@@ -212,12 +213,11 @@ sub authorize {
 
 #open a connection to the server
 sub openExaSocket {
-    print "About to open ExaSocket: $config->{'interface'}->{'host'}, $config->{'interface'}->{'port'}\n";
+    $logger->debug("About to open ExaSocket: $config->{'interface'}->{'host'}, $config->{'interface'}->{'port'}");
     
     my $sock = IO::Socket::INET->new(PeerAddr => $config->{'interface'}->{'host'},
 					   PeerPort => $config->{'interface'}->{'port'},
 					   Proto    => 'tcp') or die "Cannot connect: $!\n";
-    print "Socket opened\n";
     return $sock;
 }
 
@@ -252,14 +252,13 @@ sub mainloop {
 	    # Child process
 	    while (defined (my $buf = <$child>)) {
 		chomp $buf;
-		print "buffer is $buf\n";
+		$logger->debug("buffer is $buf");
 		#inbound request is in json - no new lines/indents though
 		my $json = validateJson($buf);
-		print objectToString($json);
 		if ($json != -1) {
-		    print "About to process inbound request\n";
+		    $logger->debug("About to process inbound request");
 		    my $status = processInboundRequests($child, $json);
-		    print "I got $status\n";
+		    $logger->debug("I got $status");
 		    print $child "$status\n";
 		} else {
 		    print $child "Invalid JSON\n";
@@ -333,13 +332,13 @@ sub processInboundRequests {
 	    }
 
 	    # add it to the DB first in case there is an error adding it
-	    print "About to add route to database\n";
+	    $logger->debug("About to add route to database");
 	    my $db_stat = &addRouteToDB($json);
 	    if ($db_stat != 1) {
 		return "Error adding route to Database: $db_stat";
 	    }
 	    
-	    print "About to interface with ExaBGP\n";
+	    $logger->debug("About to interface with ExaBGP");
 	    my $status = sendtoExaBgpInt ($child, $json, "add");
 	    # add route to the database
 	    if ($status == -1) {
@@ -405,7 +404,7 @@ sub processInboundRequests {
 	    # this forces the db to push all pending changes out to the
 	    # exabgp server. Essentially it normalizes the bh database to the
 	    # exabgp server.
-	    my $status = &pushChanges($child);
+	    my $status = &pushChanges($child, $json);
 	    return $status;
 	}
 	case /deleteselection/ {
@@ -434,16 +433,15 @@ sub sendtoExaBgpInt {
     print "about to open socket to exabgp interface\n";
     my $exa_socket = &openExaSocket; #create ExaBGP interface socket
     if (! &authorize($exa_socket)) { #authorize this process 
-	print "Validation failed\n";
+	$logger->error("ExaBGP authorization failed");
 	print $child "Authorization failed\n";
 		close ($exa_socket);
 	close ($child);
 	return;
     }
     my $status = &blackHole($exa_socket, $request, $action);
-    print objectToString($request);
-    print "I sent $request and $action and received $status\n";
-    print objectToString($request);
+    my $unpacked_request = objectToString($request);
+    $logger->debug("I sent $unpacked_request and $action and received $status");
     close ($exa_socket);
     return $status;
 }
@@ -553,7 +551,7 @@ sub blackHole {
 
     $srv_socket->read($status, 32768); # read to 32k or the end of line
 
-    print "Blackhole status is $status\n";
+    $logger->debug("status in function blackHole is $status");
     
     # if we are dumping routes we'll just get a blob of text
     if ($action eq "dump") {
@@ -581,7 +579,7 @@ sub blackHole {
 # and only update the db
 sub editRouteInDB {
     my $json = shift @_;
-    print "about to edit route in DB";
+    $logger->debug("about to edit route in DB");
 
     # if for some reason we don't have a valid bh_index
     # and it is equal to NULL then the update fails
@@ -623,7 +621,7 @@ sub editRouteInDB {
 	#withdraw the route
     }
 
-    print objectToString($json);
+    $logger->debug("Inbound json object is" . objectToString($json));
     if ($json->{'bh_active'} == 1) {
 	# if the new route is different than the old route then
 	# withdraw it first
@@ -652,7 +650,7 @@ sub editRouteInDB {
 	my $error = $sth->errstr();
 	$sth->finish();
 	$dbh->disconnect();
-	print "$error\n";
+	$logger->error($error);
 	return ($error);
     }
     $sth->finish();
@@ -714,7 +712,7 @@ sub updateClient {
     # get the socket
     my $dbh = &DBSocket;
 
-    # we need to conver the CSV values to arrays
+    # we need to convert the CSV values to arrays
     my @asns = split (",", $json->{'client-asns'});
     map { s/^\s+|\s+$//g; } @asns;
     my @vlans = split (",", $json->{'client-vlans'});
@@ -805,7 +803,6 @@ sub updateUser {
     my $role_insert;
     my $role_active;
     my $dbh = &DBSocket();
-    print "I have a socket!\n";
     my $query = "UPDATE bh_users 
 		 SET bh_user_name = ?,
                      bh_user_fname = ?,
@@ -876,8 +873,7 @@ sub addUser {
     print "initial password is $newPassword\n";
     my $passhash = password_hash($newPassword, PASSWORD_BCRYPT);
     my $dbh = &DBSocket();
-    print "I have a socket in addUser!\n";
-    print objectToString($json);
+    $logger->debug("AddUser inbound data: " . objectToString($json));
     my $query = "INSERT INTO bh_users 
 		        (bh_user_name, bh_user_fname, bh_user_lname, 
                          bh_user_email, bh_user_affiliation, bh_user_role,
@@ -900,12 +896,11 @@ sub addUser {
 	$dbh->disconnect();
 	return ($error);
     }
-    print "User added!\n";
+    $logger->infor ("User " . $json->{'user-username'} . " added!");
     $sth->finish();
     $dbh->disconnect();
     # the user exists in the database so lets let them know what their
     # initial password is
-    print "About to send email\n";
     
     my $text  = "Hello, your new one time password for the Black Hole Service at 3ROX is\n";
     $text .= "found below. You will need to change your password the next time you\n";
@@ -931,7 +926,7 @@ sub addUser {
 	}
 	);
     eval { $sender->send($email) };
-    print "Sent mail\n";
+    $logger->info("In addUser - Sent mail to $target_email");
     return "Success";   
 }
 
@@ -980,7 +975,7 @@ sub resetPassword {
     }    
     $sth->finish();
     $dbh->disconnect();    
-    print "Updated password in DB\n";
+    $logger->info("Updated password in DB for user $json->{bh_user_id}");
     # we have updated the password. Now send the new password to the user
     my $text  = "Hello, your new one time password for the Black Hole Service at 3ROX is\n";
     $text .= "found below. You will need to change your password the next time you\n";
@@ -1015,7 +1010,7 @@ sub resetPassword {
 #   } catch {
 #	return ("Failed to send email to user\n");
 #   };
-    print "Supposedly sent the mail\n";
+    $logger->info("Supposedly sent the mail to $email");
     return "Success";
 }
 
@@ -1090,6 +1085,8 @@ sub deleteClient {
 # normalize the exabgp server to the database 
 sub pushChanges {
     my $child = shift @_;
+    my $json = shift @_; #should contain client_id and user_role
+
     # we need to grab the list of routes in the exabgp server
     my $results = sendtoExaBgpInt ($child, "", "dump");
     my %exablocks; #blocks from the server
@@ -1107,27 +1104,48 @@ sub pushChanges {
 
     foreach my $exaroute (@exaroutes) {
 	# data is whitespace separated. 
-	my @split_route = split ("\ +", $exaroute);
+	my @split_route = split (/ +/, $exaroute);
 	$exablocks{$split_route[4]} = 1;
     }
 
+    print "PC Json is : " . objectToString($json) ."\n";
+    print "PC exablocks was: " . objectToString(\%exablocks) . "\n";
+    # if they aren't admin/staff then remove any route
+    # they don't control from the struct
+    if ($json->{'bh_user_role'} == 1) {
+	my $exablocks_ref = &customerOnlyRoutes(\%exablocks, $json->{'bh_client_id'});
+	%exablocks = %$exablocks_ref;
+    }
+    print "Exablocks is now: " . objectToString(\%exablocks) ."\n";
     # we now have all of the exabgp routes in exablocks
     # get the list of *active* routes from the database
+    my $sth;
     my $dbh = &DBSocket;
+    # local $dbh->{TraceLevel} = "3|SQL";
     my $query = "SELECT bh_route 
                  FROM   bh_routes
-                 WHERE  bh_active =1";
-    my $sth = $dbh->prepare($query);
+                 WHERE  bh_active = 1";
+    # if they aren't an admin/staff then only grab the ones they have control over
+    if ($json->{'bh_user_role'} == 1) {
+	$query .= " AND  bh_client_id = ?";
+	$sth = $dbh->prepare($query);
+	$sth->bind_param(1, $json->{'bh_client_id'});
+    } else {
+	$sth = $dbh->prepare($query);
+    }
+
     $sth->execute();
     if ($sth->err()) {
 	#need to write this to a log
-	print "Error in updateloop: $sth->errstr()";
+	$logger->error("Error in updateloop: $sth->errstr()");
     }
     while (my @result = $sth->fetchrow_array()) {
 	$dbblocks{$result[0]} = 1;
     }
     $sth->finish();
 
+    print "dbblocks is\n" . objectToString(\%dbblocks) . "\n";
+    
     #we now have two hashes of blocks
     #if there is a block in the exabgp set that is
     #not in the db set then we want to delete it
@@ -1142,29 +1160,91 @@ sub pushChanges {
 	%protected = map {trim($_) => 1} split (",", $config->{'protected_routes'}->{'routes'});
     }
 
+    
     my %route;
     foreach my $exa (keys %exablocks) {
 	#check any protected routes
 	if (defined $protected{$exa}) {
 	    next;
 	}
+	print "Looking at $exa in del routine result is $dbblocks{$exa}\n";
 	if (!defined $dbblocks{$exa}) {
-	    print "$exa is not in database: delete\n";
+	    print "$exa does not exist in db hash at $dbblocks{$exa}";
+	    $logger->info ("$exa is not in database: deleting");
 	    $route{'bh_route'} = $exa;
-	    print objectToString(%route);
 	    sendtoExaBgpInt("", \%route, "del");
 	}
     }
 
     foreach my $db (keys %dbblocks) {
+	print "Looking at $db in add routine result is $exablocks{$db}\n";
 	if (!defined $exablocks{$db}) {
-	    print "$db is not in exabgp: adding\n";
+	    $logger->info("$db is not in exabgp: adding");
 	    $route{'bh_route'} = $db;
-	    print objectToString(%route);
 	    sendtoExaBgpInt("", \%route, "add");
 	}
     }
     return 1;
+}
+
+# take an incoming list of routes
+# determine if they are in the set of routes that the
+# customer has control over. Elide everything else
+sub customerOnlyRoutes {
+    my $routes_ref = shift @_;
+    my $client_id = shift @_;
+    
+    #first we grab the set of routes that the customer has control over
+    my $dbh = &DBSocket();
+    my $query = "SELECT bh_client_blocks
+                 FROM bh_clients
+		 WHERE bh_client_id = ?";
+    my $sth = $dbh->prepare($query);
+    $sth->bind_param(1, $client_id);
+    $sth->execute();
+    if ($sth->err()) {
+	#need to write this to a log
+	$logger->error("Error in customerOnlyRoutes: $sth->errstr()");
+    }
+    #we should only have one result
+    my $json;
+    $sth->bind_col(1, \$json);
+    $sth->fetch();
+    my $blocks = decode_json($json);
+    # this part is annoying because we have to take every single
+    # route passed to us by exabgp and determine if it's in a control
+    # block owned by the customer. 
+
+    my $delete_flag;
+    #go through each of the routes given to use by exabgp
+    foreach my $exaroute (keys %$routes_ref) {
+	$delete_flag = 0;
+	# now go through each of the ones from the database
+	foreach my $dbroute (@{$blocks->{'blocks'}}) {
+	    #get the ip address
+	    #we are ignoring the mask
+	    my($ip, $mask) = split ("/", $exaroute);
+	    my $netblock = Net::Netmask->new2($dbroute);
+	    #if the ip is not in the netblock then
+	    #set the delete flag to 1. This may happen
+	    #multiple times. No big deal because if we do get a match
+	    #then we exit the inner loop after resetting the flag to 0
+	    if (! $netblock->match($ip)) {
+		$delete_flag = 1;
+	    } else {
+		$delete_flag = 0;
+		last;
+	    }
+	}
+	# we only delete the route if the flag is true
+	if ($delete_flag == 1) {
+	    delete %$routes_ref{$exaroute};
+	}
+    }
+    #what remains should *only* be the routes on the exabgp server
+    #that our customer controls. Since it was passed by reference
+    #we should be good to go without explicitly returning the hash reference
+    return $routes_ref;
 }
 
 # strip leading and trailing whitespace
@@ -1193,7 +1273,7 @@ sub updateloop {
 	    $sth->execute();
 	    if ($sth->err()) {
 		#need to write this to a log
-		print "Error in updateloop: $sth->errstr()";
+		$logger->error("Error in updateloop: $sth->errstr()");
 	    }
 	    while (my $result = $sth->fetchrow_hashref()) {
 		my $updateQuery = "UPDATE bh_routes
@@ -1204,7 +1284,7 @@ sub updateloop {
 		$updatesth->execute();
 		if ($updatesth->err()) {
 		    #need to write this to a log
-		    print "Error in updateloop: $updatesth->error()";
+		    $logger->error("Error in updateloop: $updatesth->error()");
 		}
 		# we now have to fire off something to exaBGP to tell it to
 		# eliminate those routes. We don't need to specify the first
@@ -1212,8 +1292,7 @@ sub updateloop {
 		# TODO: create real logging for this
 		my %route;
 		$route{'bh_route'} = $result->{'bh_route'};
-		print "Sending to exabgp from updateloop\b";
-		print objectToString(%route);
+		$logger->info("route $result->bh_index has expired"); 
 		sendtoExaBgpInt("", \%route, "del");
 	    }   
 	    sleep 60;

@@ -87,7 +87,7 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
-		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/mainpage.php'"  type="button" class="btn btn-sm btn-primary">Routes</button></p>
+		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/routes.php'"  type="button" class="btn btn-sm btn-primary">Routes</button></p>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"  type="button" class="btn btn-sm btn-primary">Logout</button></p>
             </div><!--/.nav-collapse -->
 	</div> <!-- END nav container -->

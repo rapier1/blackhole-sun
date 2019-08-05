@@ -32,7 +32,7 @@ function sendToProcessingEngine ($request) {
      * engine spit some back to test that this works
      * Might want to just take the inbound json (from here)
      * reencode it, and spit it back 10/12/2018*/
-    if (!($buf = socket_read($sock, 6000, PHP_NORMAL_READ))) {
+    if (!($buf = socket_read($sock, 64000, PHP_NORMAL_READ))) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
         die("Could not receive data: [$errorcode] $errormsg \n");

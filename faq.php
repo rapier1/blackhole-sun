@@ -66,6 +66,33 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
 		</ul>
+              		<?php
+		include './trfunctions.php';
+		session_start();
+		if (!empty($_SESSION["username"]))
+		{
+		    sessionTimer();
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"routeList\" 
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/routes.php'\" 
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Route List</button></p>";
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\" 
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\" 
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Logout</button></p>";
+		} else {
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\" 
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\" 
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Login</button></p>";
+		}
+		if ($_SESSION["bh_user_role"] == 4)
+		{
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"usermanagement\" 
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/usermanagement.php'\" 
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Users</button></p>";
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"customers\" 
+                           onClick=\"window.location='http://". $_SERVER['SERVER_NAME'] ."/blackholesun/customers.php'\" 
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Customers</button></p>";
+		}
+		?>
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
     </nav>
