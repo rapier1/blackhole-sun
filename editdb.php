@@ -12,7 +12,9 @@ $args = array (
     'bh_lifespan' => FILTER_VALIDATE_INT,
     'bh_index' => FILTER_VALIDATE_INT,
     'bh_client_id' => FILTER_VALIDATE_INT,
-    'bh_user_role' => FILTER_VALIDATE_INT
+    'bh_user_role' => FILTER_VALIDATE_INT,
+    'bh_owner_id' => FILTER_SANITIZE_STRING,
+    'bh_comment' => FILTER_SANITIZE_STRING
 );
 
 $input = filter_input_array(INPUT_POST, $args);

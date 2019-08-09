@@ -147,7 +147,7 @@
             }
 	}
     }
-    $form = newClientForm($_POST); /* send post data in case this is a reload due to error */
+    $form = newCustomerForm($_POST); /* send post data in case this is a reload due to error */
     print "<table align='center'><tr><td>";
     print $form;
     print "</td></tr></table>";      

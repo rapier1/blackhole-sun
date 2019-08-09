@@ -116,9 +116,16 @@
         }
     }
     $form = newUserForm();
-    print "<table align='center'><tr><td>";
+    print "<table align='center'><tr><td>\n";
     print $form;
-    print "</td></tr></table>";      
+    print "</tr></td>\n";
+    /* cancel button */
+    print "<tr><td><br></td></tr>\n";
+    print "<tr><td>";
+    print "<input action=\"action\" onclick=\"window.location = './usermanagement.php'; 
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
+    print "</td></tr>\n";
+    print "</table>\n";      
     ?>
     
     <!-- modals handler -->

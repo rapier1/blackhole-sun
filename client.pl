@@ -302,6 +302,10 @@ sub validateBHInput {
     if (!looks_like_number($json->{bh_lifespan})) {
 	return -2;
     }
+    #check to see if they are making an imortal blackhole
+    if ($json->{bh_lifespan} == 9999) {
+	return 1;
+    }
     if ($json->{bh_lifespan} <  $config->{'duration'}->{'min'}
 	|| $json->{bh_lifespan} > $config->{'duration'}->{'max'}) {
 	return -3;
@@ -505,11 +509,19 @@ sub listExistingBH {
     }
     $sth->execute();
     #loop through the results and build the array of hashrefs
+    #and see if the user has the rights to edit the route
     while (my $result = $sth->fetchrow_hashref()) {
 	$result->{'bh_client_name'} = $name_array[$result->{'bh_client_id'}];
+	$result->{'bh_owner_name'} = $name_array[$result->{'bh_owner_id'}];
+	# if the client_id is not the same as the owner id they don't have rights
+	if ($result->{'bh_client_id'} == $result->{'bh_owner_id'}) {
+	    $result->{'editable'} = 1;
+	} else {
+	    $result->{'editable'} = -1;
+	}
 	push @results, $result;
     }
-    
+
     $sth->finish();
     $dbh->disconnect();
     #convert to json
@@ -633,18 +645,23 @@ sub editRouteInDB {
 	sendtoExaBgpInt("", $json, "add");
     }
 
+    local $dbh->{TraceLevel} = "3|SQL";
     # update the database with the new information
     $query = "UPDATE bh_routes
                  SET bh_route = ?,
                      bh_lifespan = ?,
-                     bh_active = ?
+                     bh_active = ?,
+		     bh_owner_id = ?,
+		     bh_comment = ?			 
                  WHERE 
 		     bh_index = ?";
     $sth=$dbh->prepare($query);
     $sth->bind_param(1, $json->{'bh_route'});
     $sth->bind_param(2, $json->{'bh_lifespan'});
     $sth->bind_param(3, $json->{'bh_active'});
-    $sth->bind_param(4, $json->{'bh_index'});
+    $sth->bind_param(4, $json->{'bh_owner_id'});
+    $sth->bind_param(5, $json->{'bh_comment'});
+    $sth->bind_param(6, $json->{'bh_index'});
     $sth->execute();
     if ($sth->err()) {
 	my $error = $sth->errstr();
@@ -677,9 +694,11 @@ sub addRouteToDB {
 			      bh_starttime,
 			      bh_requestor,
 			      bh_client_id,
+			      bh_owner_id,
+			      bh_comment,
 			      bh_active)
                         VALUES
-			     (?,?,?,?,?,1);";
+			     (?,?,?,?,?,?,?,1);";
     $sth = $dbh->prepare($query);
     my $datetime = $json->{'bh_startdate'} . " " . $json->{'bh_starttime'};
     $sth->bind_param(1, $json->{'bh_route'});
@@ -687,6 +706,8 @@ sub addRouteToDB {
     $sth->bind_param(3, $datetime);
     $sth->bind_param(4, $json->{'bh_requestor'});
     $sth->bind_param(5, $json->{'bh_client_id'});
+    $sth->bind_param(6, $json->{'bh_owner_id'});
+    $sth->bind_param(7, $json->{'bh_comment'});
     $sth->execute();
     #need error checking 
     if ($sth->err()) {
@@ -1262,7 +1283,7 @@ sub updateloop {
 	# this query finds all of the active routes where the difference
 	# between the start time and the current time is greater than the
 	# desired life of the route
-	my $query = "SELECT bh_index, bh_route 
+	my $query = "SELECT bh_index, bh_route, bh_lifespan 
 		     FROM   bh_routes 
 		     WHERE  (timestampdiff(hour, bh_starttime, current_timestamp()) > bh_lifespan)
                      AND bh_active=1";
@@ -1276,6 +1297,11 @@ sub updateloop {
 		$logger->error("Error in updateloop: $sth->errstr()");
 	    }
 	    while (my $result = $sth->fetchrow_hashref()) {
+		# if the lifespan is set to the magic number then
+		# never expire it
+		if ($result->{'bh_lifespan'} == 9999) {
+		    next;
+		}
 		my $updateQuery = "UPDATE bh_routes
 					       SET    bh_active=0
 					       WHERE  bh_index = ?";

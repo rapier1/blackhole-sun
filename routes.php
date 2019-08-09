@@ -27,6 +27,19 @@
  * and then processing the form, getting the results, and displaying them
  * I'm likely going to want to use AJAX for this. 
  */
+
+/* TODO
+ * DONE: Add a comments field so people can explain why they are entering a route
+ * DONE: Add a customer field built form the DB so a higher level user or admin can assign route
+ *      visbility to another customer
+ * DONE: Add an initiator field to the database and as a value for routes. This would allow
+ *      an admin type to create a route for another customer. This will give us the opportunity
+ *      to create read only routes. The customer can see the route but not edit it. 
+ * Add an option to make a route last forever. Need some special value for this. 
+ * Add email notifcations for when routes are added. This would go an email defined by the
+ *     admin and any users that are asscoiated with that specific customer
+ * DONE: cancel button on all sections
+ */
 ?>
 
 
@@ -62,8 +75,8 @@
     <!-- modals code -->
     <script src="./trmodals.js"></script>
     <link href="jquery/tablesorter-master/dist/css/theme.default.min.css" rel="stylesheet">
-    <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.min.js"></script>
-    <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.widgets.min.js"></script>
+    <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.js"></script>
+    <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.widgets.js"></script>
     <!-- Tablesorter: optional -->
     <link rel="stylesheet" href="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.css">
     <script src="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.js"></script>
@@ -78,6 +91,9 @@
     }
     include("./trfunctions.php");
     include("./functions.php");
+    /* the following include loads all of the functions
+     * specific to this page */
+    include("./routeentry_functions.php");
     ?>
 
 </head>
@@ -94,7 +110,7 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
-		<p class="navbar-right navbar-btn"><button id="logout"
+		<p class="navbar-right navbar-btn"><button id="account"
 							   onClick="window.location=
                                                            'http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/accountmgmt.php'"
 							   type="button"
@@ -108,6 +124,11 @@
 			  $_SERVER['SERVER_NAME'] .
 			  "/blackholesun/usermanagement.php'\"  type='button' 
                            class='btn btn-sm btn-primary'>Users</button></p>";
+		    print "<p class='navbar-right navbar-btn'><button id='customers' 
+                           onClick=\"window.location='http://" .
+			  $_SERVER['SERVER_NAME'] .
+			  "/blackholesun/customers.php'\"  type='button' 
+                           class='btn btn-sm btn-primary'>Customers</button></p>";
 		}
 		?>
 		<p class="navbar-right navbar-btn">
@@ -115,6 +136,9 @@
 			    onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"
 			    type="button"
 			    class="btn btn-sm btn-primary">Logout</button></p>
+		<p class="navbar-text"><?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_client_name'] ?>
+		</p>
+
             </div><!--/.nav-collapse -->
 	</div> <!-- END nav container -->
     </nav>
@@ -140,20 +164,44 @@
 		    <input type="submit" name="submit" value="Normalize ExaBGP">
 		</form>
 	    </div>
-	    <div class="col-sm-8 text-left">
+	    <div class="col-sm-9 text-left">
 		Enter Route to Blackhole
 		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
 		    <table>
 			<thead>
 			    <tr>
-				<th>Route</th><th>Duration</th><th>Start Date</th><th>Time</th>
+				<th>Route</th><th>Duration</th><th>Start Date</th><th>Time</th><th>Customer</th><th>Comments</th></tr>
 			    </tr>
 			</thead>
-			<tr>
-			    <td><input type="text" id="bh_route" name="bh_route"></td>
-			    <td><input type="text" id="bh_lifespan" name="bh_lifespan" value="72"></td>
-			    <td><input type="date" id="bh_startdate" name="bh_startdate"></td>
-			    <td><input type="time" id="bh_starttime" name="bh_starttime"></td>
+			<tr valign="top">
+			    <td><input type="text" id="bh_route" name="bh_route" required></td>
+			    <td><input type="text" id="bh_lifespan" name="bh_lifespan" value="72" required></td>
+			    <td><input type="date" id="bh_startdate" name="bh_startdate" required></td>
+			    <td><input type="time" id="bh_starttime" name="bh_starttime" required></td>
+			    <?php
+			    /* the following include loads all of the functions
+			     * specific to this page */
+			    if ($_SESSION['bh_user_role'] !=1 ) {
+				list($error, $list) = buildCustomerList(NULL);
+				if ($error != -1) {
+				    print "<td>$list</td>";
+				} else {
+				    $errFlag = -1;
+				    $errMsg = $list;
+				}
+			    } else {
+				list($error, $name) = getClientNameFromID($_SESSION['bh_client_id']);
+				if ($error != -1) {
+				    print "<td>$name</td>";
+				    print "<input type=hidden name='bh_client_id' value='" .
+					  $_SESSION['bh_client_id'] . "'/>";
+				} else {
+				    $errFlag = -1;
+				    $errMsg = $name;
+				}
+			    }
+			    ?>
+			    <td><textarea rows="2" columns="40" name="bh_comment" id="bh_comment"></textarea></td>
 			</tr>
 		    </table>
 		    <input type="hidden" name="bh_requestor" value="<?php echo $_SESSION['username'];?>">
@@ -172,10 +220,6 @@
 		</script>
 
 		<?php
-		/* the following include loads all of the functions
-		 * specific to this page */
-		include_once ('./routeentry_functions.php');
-
 		/* set this to your local timezone */
 		/* this is needed for the time/date calcs */
 		date_default_timezone_set('America/New_York');
@@ -184,8 +228,14 @@
 		    /*We have form data*/
 		    /* Man of the actions here require passing along the users
 		     * affiliation and role so append it to the POST data
+		     * the owner_id is the institution that created the route
+		     * the client_id is the institution that the route applies to
+		     * most of the time these should be the same but if an admin or
+		     * the like creates the route we want to ensure that the client
+		     * can't modfy the route. 
 		     */
-		    $_POST['bh_client_id'] = $_SESSION['bh_client_id'];
+		    $_POST['bh_owner_id'] = $_SESSION['bh_client_id'];
+		    $_POST['bh_client_id'] =  $_SESSION['bh_client_id'];
 		    $_POST['bh_user_role'] = $_SESSION['bh_user_role'];
 		    
 		    if ($_POST['action'] == 'blackhole') {

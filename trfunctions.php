@@ -132,6 +132,10 @@ function logIn($username, $password)
             $_SESSION["lname"] = $queryResult["bh_user_lname"];
             $_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
             $_SESSION["bh_client_id"] = $queryResult["bh_user_affiliation"];
+            list($error, $_SESSION["bh_client_name"]) = getName($queryResult["bh_user_affiliation"]);
+            if ($error == -1) {
+                print "Error: " . $_SESSION['bh_client_name'] . " . Halting.";
+            }
             $_SESSION["timer"]= time();
             if ($queryResult["bh_user_force_password"]) {
                 header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/changepass.php");    
@@ -332,6 +336,27 @@ function listClients()
     return $table;
 }
 
+function getName($customer_id) {
+    $dbh = getDatabaseHandle();
+    $query = "SELECT bh_client_name
+              FROM bh_clients
+              WHERE bh_client_id = :customer_id";
+    try{
+        $sth = $dbh->prepare($query);
+        $sth->bindParam(':customer_id', $customer_id, PDO::PARAM_STR);        
+        $sth->execute();
+        $result = $sth->fetch();
+    } catch(PDOException $e) {
+        // TODO need beter exception message passing here
+        return array (-1, "Something went wrong while interacting with the database:<br>"
+            . $e->getMessage());
+    }
+    if (! isset($result)) {
+        // The DB didn't return a result or there was an error
+        return array(-1, "No results were returned. The clients data tables might be empty.");
+    }
+    return array (1, $result[0]);
+}    
 
 /* we need to get a list of available institutions. This allows us to limit
  * access to a specific set of address blocks asscoiated with that institution.
@@ -406,7 +431,7 @@ function newUserForm () {
 }
 
 /* add a new client (address blocks etc) to the database */
-function newClientForm ($data) {
+function newCustomerForm ($data) {
     $form  = "<form id='addClientForm' role='form' class='form-horizontal col-8' action='" .
              htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
     $form .= "<input type='hidden' name='action' value='addClient' />\n";
@@ -420,6 +445,10 @@ function newClientForm ($data) {
                rows='4' columns='40' name='client-blocks' 
                class='form-control' value='" . $data['client-blocks'] . "' required></textarea></div>\n";
     $form .= "<button type='submit' class='btn btn-lg btn-success'>Add Client</button></form>";
+    $form .= "<P><P>";
+    $form .= "<input action=\"action\" onclick=\"window.location = './customers.php'; 
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
+
     return $form;
 }
 
@@ -486,6 +515,10 @@ function loadClientForm ($client_data, $postFlag) {
     $form .= "<div class='form-group'><label for='client-vlans'> VLANs:</label><input type='text' name='client-vlans' class='form-control' value='$vlans'></div>\n";
     $form .= "<div class='form-group'><label for='client-blocks'> Blocks:</label><textarea rows='4' columns='40' name='client-blocks' class='form-control' required>" . $blocks . "</textarea></div>\n";    
     $form .= "<button type='submit' class='btn btn-lg btn-success'>Update Client</button></form>";
+    $form .="<p><p>";
+    $form .= "<input action=\"action\" onclick=\"window.location = './customers.php'; 
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
+
     return array(0, $form);
 }
 
@@ -582,8 +615,9 @@ function loadUserForm ($user_id, $user_class, $user_id_session)
     $form .= $active_widget;
     $form .= "<button type='submit' class='btn btn-lg btn-success'>Update Account</button></form>";
     if ($user_id_session == $user_id) {
-	$form .= "<a href='#' onclick='toggle_vis(\"np\");'>Change Password</a></p>";
-	$form .= "<div id='np' style='display: none;'>";
+    $form .= "<P><P><input action=\"action\" onclick=\"javascript:toggle_vis('np');\"; 
+           return false;\" type=\"button\" value=\"Change Password\" class=\"btn btn-lg btn-success\"/>\n";
+    $form .= "<div id='np' style='display: none;'>";
 	$form .= changePasswordWidget();
 	$form .= "</div>";
 

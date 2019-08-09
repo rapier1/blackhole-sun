@@ -119,20 +119,25 @@
         if ($_SESSION['bh_user_role'] == 4) {
             $passbutton = passwordResetWidget($_POST['edituser']);
         }
-
-	if ($_SESSION['bh_user_role'] == 4) {
+        
+        if ($_SESSION['bh_user_role'] == 4) {
             $deletebutton = deleteUserWidget($_POST['edituser']);
         }
+        $cancelbutton = "<input action=\"action\" onclick=\"window.location = './usermanagement.php'; 
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
 
         print "<table align='center'> <tr><td>";
         print $form;
-        print "</P></P>" . $passbutton;
-	print "</P></P>" . $deletebutton;
+        if ($_SESSION['bh_user_role'] == 4) {
+            print "</P></P>" . $passbutton;
+            print "</P></P>" . $deletebutton;
+        }
+        print "</P></P>" . $cancelbutton;        
         print "</td></tr></table>";
     } elseif ($_POST['action'] == "updateUser") {
         // user edit has been submitted. handle it
         $json = json_encode($_POST) . "\n";
-	$response = sendToProcessingEngine($json);
+        $response = sendToProcessingEngine($json);
         if (preg_match("/Success/", $response)) {
             $errFlag = 0;
             $errMsg = "User Updated Successfully";
@@ -150,7 +155,7 @@
             print "</td></tr></table>";
         }
     } elseif ($_POST['action'] == "resetPassword") {
-	print_r ($_SESSION);
+        print_r ($_SESSION);
         $json = json_encode($_POST) . "\n";
         $response = sendToProcessingEngine($json);
         if (preg_match("/Success/", $response)) {
@@ -204,20 +209,20 @@
     } elseif ($_REQUEST['action'] == "deleteUser") {
 	$user_id = $POST['bh_user_id'];
 	$form  = "<form id='confirmDeleteUser' role='form' action='" .
-		 htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
+           htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
 	$form .= "<input type='hidden' name='action' value='confirmDeleteUser' />\n";
 	$form .= "<input type='hidden' name='bh_user_id' value='". $_POST['bh_user_id'] ."' />\n";
 	$form .= "<input type='radio' name='confirm' value='1'> Yes </input><br>\n";
 	$form .= "<input type='radio' name='confirm' value='0'> No </input><br>\n";
 	$form .= "<button type='submit' class='btn btn-lg btn-danger'>Confirm Delete User</button></form>";
-        print "<table align='center'> <tr><td>";
-        print $form;
-        print "</td></tr></table>";
+    print "<table align='center'> <tr><td>";
+    print $form;
+    print "</td></tr></table>";
     } elseif ($_REQUEST['action'] == "confirmDeleteUser"){
-	if ($_POST['confirm'] == 0) {
-	    goto listusers;
-	}
-	$json = json_encode($_POST) . "\n";
+        if ($_POST['confirm'] == 0) {
+            goto listusers;
+        }
+        $json = json_encode($_POST) . "\n";
         $response = sendToProcessingEngine($json);
         if (preg_match("/Success/", $response)) {
             $errFlag = 0;

@@ -142,6 +142,16 @@
     } else {
         print "<tr><td>";
 	print $form;
+    print "<tr><td><br></td></tr>\n";
+    print "<tr><td>";
+    if ($_SESSION['bh_user_role'] == 4) {
+        print "<input action=\"action\" onclick=\"window.location = './usermanagement.php'; 
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
+    } else {
+        print "<input action=\"action\" onclick=\"window.location = './routes.php'; 
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
+    }
+    print "</td></tr>\n";
 	print "</td></tr>";    
     }
     ?>

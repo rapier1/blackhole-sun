@@ -100,7 +100,9 @@
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
 		</ul>
 		<p class="navbar-right navbar-btn"><button id="userManagement" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/usermanagement.php'" type="button" class="btn btn-sm btn-primary">Users</button></p>
-                <p class="navbar-right navbar-btn"><button id="newClient" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newclient.php'" type="button" class="btn btn-sm btn-primary">New Customer</button></p>
+                <p class="navbar-right navbar-btn"><button id="newCustomer" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newcustomer.php'" type="button" class="btn btn-sm btn-primary">New Customer</button></p>
+		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/routes.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
+		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'" type="button" class="btn btn-sm btn-primary">Logout</button></p>
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
     </nav>

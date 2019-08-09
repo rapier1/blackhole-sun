@@ -83,8 +83,8 @@ function customersFormInfo(flag, msg) {
     }
 }
 
-function addClientFormInfo(flag, msg) {
-    if (formSrc == "addClient") {
+function addCustomerFormInfo(flag, msg) {
+    if (formSrc == "addCustomer") {
 	if (flag == 0) {
 	    modalMessage('success', msg);
 	}

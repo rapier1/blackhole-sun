@@ -124,7 +124,13 @@ if (typeof jQuery === 'undefined') {
                             var span = '<span class="tabledit-span">' + text + '</span>';
 
                             // Check if exists the third parameter of editable array.
-                            if (typeof settings.columns.editable[i][2] !== 'undefined') {
+			    if (settings.columns.editable[i][2] == 'textarea') {
+                                // Create textarea input element.
+                                var input = '<textarea class="tabledit-input rows="4" columns="40"' + settings.inputClass + '" name="' +
+				    settings.columns.editable[i][1] + '" style="display: none;" disabled>' +
+				    $(this).text() + '</textarea>';
+			    }
+			    else if ((typeof settings.columns.editable[i][2] !== 'undefined') && (settings.columns.editable[i][2] != 'textarea')) {
                                 // Create select element.
                                 var input = '<select class="tabledit-input ' + settings.inputClass + '" name="' + settings.columns.editable[i][1] + '" style="display: none;" disabled>';
 
