@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
- *  Authors: Chris Rapier <rapier@psc.edu> 
+ *  Authors: Chris Rapier <rapier@psc.edu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -10,26 +10,26 @@
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License. *
  */
 
-/* this is the client managment interface for the 
+/* this is the client managment interface for the
  * black hole project. Basically, we can create a client
  * that woudl correspond to an admintsrative network domain
- * and define what networks this domain owns. This is used to 
- * ensure that users have the right the BH a route. 
+ * and define what networks this domain owns. This is used to
+ * ensure that users have the right the BH a route.
  */
 ?>
 <!DOCTYPE html>
 <head>
     <?php
     session_start();
-    include("./trfunctions.php");
-    include("./functions.php");
+    include './functions.php';
+    include './customer_functions';
     if (empty($_SESSION["username"]))
     {
         header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
@@ -52,7 +52,7 @@
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <link rel="icon" href="../../favicon.ico">
     <title>BlackHole Sun - New Client</title>
-    <link href="jquery/datatables.css" rel="stylesheet">                                                              
+    <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -75,7 +75,7 @@
 
 <body>
     <?php include ("./modals.php"); ?>
-    
+
     <nav class="navbar navbar-inverse navbar-fixed-top">
 	<div class="container">
 	    <div class="navbar-header">
@@ -97,7 +97,7 @@
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
     </nav>
-    
+
     <?php
     $errFlag="";
     $errMsg="";
@@ -107,14 +107,14 @@
 	    $_POST['client-asns'] = "";
 	}
 	$_POST['client-asns'] = normalizeListInput($_POST['client-asns']);
-	
+
 	if (!isset($_POST['client-vlans'])) {
 	    $_POST['client-vlans'] = "";
 	}
 	$_POST['client-vlans'] = normalizeListInput($_POST['client-vlans']);
-	
+
 	// first thing we need to do is validate the submitted
-	// IP addresses and CIDR blocks. I want to provide feedback on 
+	// IP addresses and CIDR blocks. I want to provide feedback on
 	// individual bad IPs as opposed to the entire submission
 	// so we split the incoming set of IP/CIDR and run it through a validator
 
@@ -150,18 +150,18 @@
     $form = newCustomerForm($_POST); /* send post data in case this is a reload due to error */
     print "<table align='center'><tr><td>";
     print $form;
-    print "</td></tr></table>";      
+    print "</td></tr></table>";
     ?>
-    
+
     <!-- modals handler -->
 
     <script>
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doing here is using php to write javascript. 
+     // by the way, what we are doing here is using php to write javascript.
      // dirty!
      print "modalSetFormSrc(\"addClient\");\n";
      print "addClientFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
-     ?>   
+     ?>
     </script>
 </body>

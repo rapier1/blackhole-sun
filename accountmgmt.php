@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2018 The Board of Trustees of Carnegie Mellon University.
  *
- *  Authors: Chris Rapier <rapier@psc.edu> 
+ *  Authors: Chris Rapier <rapier@psc.edu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -10,7 +10,7 @@
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
@@ -35,7 +35,7 @@
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <link rel="icon" href="../../favicon.ico">
     <title>BlackHole Sun</title>
-    <link href="jquery/datatables.css" rel="stylesheet">                                                              
+    <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
          <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -56,7 +56,7 @@
     <script src="bootstrap/dist/js/bootstrap.min.js"></script>
     <!-- modals code -->
     <script src="./trmodals.js"></script>
-    
+
     <?php
     session_start();
     if (empty($_SESSION["username"]))
@@ -64,8 +64,8 @@
         header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
         die();
     }
-    include("./trfunctions.php");
-    include("./functions.php");
+    include './functions.php';
+    include './user_functions.php';
     ?>
 </head>
 
@@ -145,26 +145,26 @@
     print "<tr><td><br></td></tr>\n";
     print "<tr><td>";
     if ($_SESSION['bh_user_role'] == 4) {
-        print "<input action=\"action\" onclick=\"window.location = './usermanagement.php'; 
+        print "<input action=\"action\" onclick=\"window.location = './usermanagement.php';
            return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
     } else {
-        print "<input action=\"action\" onclick=\"window.location = './routes.php'; 
+        print "<input action=\"action\" onclick=\"window.location = './routes.php';
            return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
     }
     print "</td></tr>\n";
-	print "</td></tr>";    
+	print "</td></tr>";
     }
     ?>
-    
+
     <!-- modals handler -->
     <script>
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doign here is using php to write javascript. 
+     // by the way, what we are doign here is using php to write javascript.
      // dirty!
      print "modalSetFormSrc(\"accountMgmt\");\n";
      print "accountMgmtFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
-     ?>   
+     ?>
     </script>
     </table>
 </body>

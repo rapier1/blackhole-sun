@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
- *  Authors: Chris Rapier <rapier@psc.edu> 
+ *  Authors: Chris Rapier <rapier@psc.edu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -10,26 +10,26 @@
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License. *
  */
 
-/* this is the user and group managment interface for the 
- * black hole project. I'm still nailing down the various 
- * portions that really matter but we need to start with 
+/* this is the user and group managment interface for the
+ * black hole project. I'm still nailing down the various
+ * portions that really matter but we need to start with
  * some basics - username, password, class of user, contact
- * information, etc. 
+ * information, etc.
  */
 ?>
 <!DOCTYPE html>
 <head>
     <?php
     session_start();
-    include("./trfunctions.php");
-    include("./functions.php");
+    include './functions.php';
+    include './customer_functions.php';
     if (empty($_SESSION["username"]))
     {
         header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
@@ -52,7 +52,7 @@
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <link rel="icon" href="../../favicon.ico">
     <title>BlackHole Sun - Customer Management</title>
-    <link href="jquery/datatables.css" rel="stylesheet">                                                              
+    <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -82,7 +82,7 @@
 
 <body>
     <?php include ("./modals.php"); ?>
-    
+
     <nav class="navbar navbar-inverse navbar-fixed-top">
 	<div class="container">
 	    <div class="navbar-header">
@@ -106,7 +106,7 @@
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
     </nav>
-    
+
     <?php
     $errFlag="";
     $errMsg="";
@@ -135,15 +135,15 @@
 	    $_POST['client-asns'] = "";
 	}
 	$_POST['client-asns'] = normalizeListInput($_POST['client-asns']);
-	
+
 	if (!isset($_POST['client-vlans'])) {
 	    $_POST['client-vlans'] = "";
 	}
 	$_POST['client-vlans'] = normalizeListInput($_POST['client-vlans']);
-	
-	
+
+
 	// first thing we need to do is validate the submitted
-	// IP addresses and CIDR blocks. I want to provide feedback on 
+	// IP addresses and CIDR blocks. I want to provide feedback on
 	// individual bad IPs as opposed to the entire submission
 	// so we split the incoming set of IP/CIDR and run it through a validator
 
@@ -206,28 +206,28 @@
             $errMsg = "There was a problem deleting the user: $response";
         }
     } else {
-	    listclients: 
+	    listclients:
 	    $client_table = listClients();
 	    // we need to be able to edit individual client. by wrapping the list in a
 	    // form we can do that
-	    print "<form id='customerForm' name='customerForm' class='form-horizontal col-5' 
-                 action='" . htmlspecialchars($_SERVER['PHP_SELF']) . "' 
-                 method='post' role='form' class='form-horizontal'>";     
+	    print "<form id='customerForm' name='customerForm' class='form-horizontal col-5'
+                 action='" . htmlspecialchars($_SERVER['PHP_SELF']) . "'
+                 method='post' role='form' class='form-horizontal'>";
 	    print $client_table;
 	    print "<button type='submit' name='action' value='edit' class='btn btn-success'>Edit Selcted</button>";
 	    print "</form>";
 	}
     ?>
-    
+
     <!-- modals handler -->
 
     <script>
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doing here is using php to write javascript. 
+     // by the way, what we are doing here is using php to write javascript.
      // dirty!
      print "modalSetFormSrc(\"customers\");\n";
      print "customersFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
-     ?>   
+     ?>
     </script>
 </body>

@@ -1,8 +1,8 @@
-<?php 
+<?php
 /*
  * Copyright (c) 2018 The Board of Trustees of Carnegie Mellon University.
  *
- *  Authors: Chris Rapier <rapier@psc.edu> 
+ *  Authors: Chris Rapier <rapier@psc.edu>
  *          Nate Robinson <nate@psc.edu>
  *          Bryan Learn <blearn@psc.edu>
  *
@@ -12,7 +12,7 @@
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
@@ -20,7 +20,9 @@
  */
 ?>
 <?php
-include 'trfunctions.php';
+include './functions.php';
+include './login_functions.php';
+
 logOut(); /* making sure we clear all session data */
 session_start();
 session_unset();
@@ -62,16 +64,15 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
     {
 	$inputs["bhUsername"] = scrubInput($_REQUEST["bhUsername"]);
 	$inputs["bhPassword"] = scrubInput($_REQUEST["bhPassword"]);
-        
-        // The logIn function sets all of the session variables and the redirect to the routes page.
-        // the login function is defined in trfunctions.php
+
+	// The logIn function sets all of the session variables and the redirect to the routes page.
 	$pwdMatchFlag = logIn($inputs["bhUsername"],$inputs["bhPassword"]);
 
         if ($pwdMatchFlag == 1){
             $inputErrors["bhPassword"] = "Authentication failure";
             $errFlag = 1;
         }
-        
+
     }
     // implode error messages into one string
     $errMsg = implode("<br>", array_filter($inputErrors));
@@ -100,64 +101,9 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
             <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
             <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
         <![endif]-->
-
-
-
-
-
-
     </head>
 
     <body>
-	<!-- Modals for warning and error messages -->
-	<div id="successModal" class="modal fade">
-            <div class="modal-dialog">
-		<div class="modal-content">
-                    <div class="modal-header">
-			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-			<h4 class="modal-title"><p class="text-success">Success!</p></h4>
-                    </div>
-                    <div class="modal-body">
-			<p id="successModalText" class="text-success">Something good happened.</p>
-                    </div>
-                    <div class="modal-footer">
-			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    </div>
-		</div>
-            </div>
-	</div>
-	<div id="warnModal" class="modal fade">
-            <div class="modal-dialog">
-		<div class="modal-content">
-                    <div class="modal-header">
-			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-			<h4 class="modal-title">Oops..</h4>
-                    </div>
-                    <div class="modal-body">
-			<p id="warnModalText" class="text-warning">Giving you a warning.</p>
-                    </div>
-                    <div class="modal-footer">
-			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    </div>
-		</div>
-            </div>
-	</div>
-	<div id="errorModal" class="modal fade">
-            <div class="modal-dialog">
-		<div class="modal-content">
-                    <div class="modal-header">
-			<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-			<h4 class="modal-title">Oops..</h4>
-                    </div>
-                    <div class="modal-body">
-			<p id="errorModalText" class="text-danger">Oh no an error occurred.</p>
-                    </div>
-                    <div class="modal-footer">
-			<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    </div>
-		</div>
-            </div>
-	</div>
 	<nav class="navbar navbar-inverse navbar-fixed-top">
             <div class="container">
                 <div class="navbar-header">
@@ -191,12 +137,12 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
 			<form id="loginForm" name="loginForm" class="form-horizontal col-6" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="post" role="form" class="form-horizontal">
 
 				<div class="form-group">
-					<label for="bhUsername">Username</label> 
+					<label for="bhUsername">Username</label>
 					<input type="text" id="bhUsername" name="bhUsername" class="form-control">
 				</div>
 
 				<div class="form-group">
-					<label for="bhPassword">Password</label> 
+					<label for="bhPassword">Password</label>
 					<input type="password" id="bhPassword" name="bhPassword" class="form-control">
 				</div>
 				<div class="form-group">
@@ -220,6 +166,6 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
      <?php
         print "modalSetFormSrc(\"login\");";
         print "loginFormInfo(".$errFlag.", \"".$errMsg."\");";
-    ?>   
+    ?>
 </script>
 </html>

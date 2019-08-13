@@ -1,6 +1,24 @@
 <?php
+/*
+ * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
+ *
+ *  Authors: Chris Rapier <rapier@psc.edu>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. *
+ */
+
 /* this script handles the incoming request to edit the database
- * entries. There are two things that need to happen. First, 
+ * entries. There are two things that need to happen. First,
  * the database needs to be updated. Second, any changes have to be
  * pushed out to the exaBGP server. The first part is easy. The second...
  * we will see, won't we?
@@ -49,7 +67,7 @@ if (! is_numeric($_POST['bh_lifespan'])) {
 
 /* everything needs to be checked for consistency and injection attacks
  * bh_route and community are the only ones that are of concern
- * as we already have a check for bh_lifespan. 
+ * as we already have a check for bh_lifespan.
  */
 
 /*TODO: check route format here once we know what it is */
@@ -99,5 +117,5 @@ function gotoerr ($message) {
     print json_encode($error);
     exit;
 }
-                  
+
 ?>

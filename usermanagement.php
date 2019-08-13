@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
- *  Authors: Chris Rapier <rapier@psc.edu> 
+ *  Authors: Chris Rapier <rapier@psc.edu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -10,26 +10,27 @@
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License. *
  */
 
-/* this is the user and group managment interface for the 
- * black hole project. I'm still nailing down the various 
- * portions that really matter but we need to start with 
+/* this is the user and group managment interface for the
+ * black hole project. I'm still nailing down the various
+ * portions that really matter but we need to start with
  * some basics - username, password, class of user, contact
- * information, etc. 
+ * information, etc.
  */
 
 ?>
 <!DOCTYPE html>
 <head>
     <?php
-    include("./trfunctions.php");
-    include("./functions.php");
+    include './functions.php';
+    include './user_functions.php';
+
     session_start();
     if (empty($_SESSION["username"]))
     {
@@ -53,7 +54,7 @@
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <link rel="icon" href="../../favicon.ico">
     <title>BlackHole Sun</title>
-    <link href="jquery/datatables.css" rel="stylesheet">                                                              
+    <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -86,7 +87,7 @@
 
 <body>
     <?php include ("./modals.php"); ?>
-    
+
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container">
             <div class="navbar-header">
@@ -98,7 +99,7 @@
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
                 </ul>
 		<p class="navbar-right navbar-btn"><button id="newUser" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/newuser.php'" type="button" class="btn btn-sm btn-primary">New User</button></p>
-		<p class="navbar-right navbar-btn"><button id="customers" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/customers.php'" type="button" class="btn btn-sm btn-primary">Customers</button></p>		
+		<p class="navbar-right navbar-btn"><button id="customers" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/customers.php'" type="button" class="btn btn-sm btn-primary">Customers</button></p>
 		<p class="navbar-right navbar-btn"><button id="routeList" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/routes.php'" type="button" class="btn btn-sm btn-primary">Route List</button></p>
 		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'" type="button" class="btn btn-sm btn-primary">Logout</button></p>
             </div><!--/.nav-collapse -->
@@ -106,33 +107,29 @@
     </nav>
 
     <nav class="container"> <!-- main body -->
-    
+
     <?php
     $errFlag = "";
     $errMsg = "";
-    $passbutton = "";
+    $admin_buttons = "";
+    $cancelbutton = "</P></P><input action=\"action\" onclick=\"window.location = './usermanagement.php';
+           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
+    if ($_SESSION['bh_user_role'] == 4) {
+    	$admin_buttons = "</P></P>" . passwordResetWidget($_POST['edituser']);
+    	$admin_buttons .= "</P></P>" . deleteUserWidget($_POST['edituser']);
+    }
     if (($_POST['action'] == "edit") && (isset($_POST['edituser']))) {
         // generate a form to edit a specific user
         list($error, $form) = loadUserForm($_POST['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
+        if ($error == -1) {
+        	$errFlag = 1;
+        	$errMsg = $form;
+        }
         $_SESSION['edituser'] = $_POST['edituser'];
-        // only include the password reset button if they are an BHS admin
-        if ($_SESSION['bh_user_role'] == 4) {
-            $passbutton = passwordResetWidget($_POST['edituser']);
-        }
-        
-        if ($_SESSION['bh_user_role'] == 4) {
-            $deletebutton = deleteUserWidget($_POST['edituser']);
-        }
-        $cancelbutton = "<input action=\"action\" onclick=\"window.location = './usermanagement.php'; 
-           return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
-
         print "<table align='center'> <tr><td>";
         print $form;
-        if ($_SESSION['bh_user_role'] == 4) {
-            print "</P></P>" . $passbutton;
-            print "</P></P>" . $deletebutton;
-        }
-        print "</P></P>" . $cancelbutton;        
+        print $admin_buttons;
+        print $cancelbutton;
         print "</td></tr></table>";
     } elseif ($_POST['action'] == "updateUser") {
         // user edit has been submitted. handle it
@@ -147,11 +144,14 @@
             $errMsg = "There has been an error handling this request: $response";
             // reload the user edit form
             list($error, $form) = loadUserForm($_SESSION['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
-            if ($_SESSION['bh_user_role'] == 4) {
-                $passbutton = passwordResetWidget($_SESSION['edituser']);
+            if ($error == -1) {
+            	$errFlag = 1;
+            	$errMsg = $form;
             }
             print "<table align='center'> <tr><td>";
             print $form;
+            print $admin_buttons;
+            print $cancelbutton;
             print "</td></tr></table>";
         }
     } elseif ($_POST['action'] == "resetPassword") {
@@ -167,11 +167,14 @@
             $errMsg = "There has been an error handling this request: $response";
             // reload the user edit form
             list($error, $form) = loadUserForm($_SESSION['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
-            if ($_SESSION['bh_user_role'] == 4) {
-                $passbutton = passwordResetWidget($_SESSION['edituser']);
+            if ($error == -1) {
+            	$errFlag = 1;
+            	$errMsg = $form;
             }
             print "<table align='center'> <tr><td>";
             print $form;
+            print $admin_buttons;
+            print $cancelbutton;
             print "</td></tr></table>";
         }
     } elseif ($_POST['action'] == "changePassword") {
@@ -179,10 +182,15 @@
             // bad current password
             $errFlag = 1;
             $errMsg = "The password supplied does not match our records";
-            // reload the user edit form
+            // reload the user edit form If the form errors out then we ignore it
+            // because they likely couldn't have gotten here if it was doing that
+            // this is true for the following loadUserForm functions in this
+            // elseif block
             list($error, $form) = loadUserForm($_SESSION['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
             print "<table align='center'> <tr><td>";
             print $form;
+            print $admin_buttons;
+            print $cancelbutton;
             print "</td></tr></table>";
         } elseif ($_REQUEST["npass1"] != $_REQUEST["npass2"]) {
             //the old password is true but these don't match
@@ -192,6 +200,8 @@
             list($error, $form) = loadUserForm($_SESSION['edituser'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
             print "<table align='center'> <tr><td>";
             print $form;
+            print $admin_buttons;
+            print $cancelbutton;
             print "</td></tr></table>";
         } else {
             // current password is good and the new ones match
@@ -207,17 +217,16 @@
             }
         }
     } elseif ($_REQUEST['action'] == "deleteUser") {
-	$user_id = $POST['bh_user_id'];
-	$form  = "<form id='confirmDeleteUser' role='form' action='" .
+    	$form  = "<form id='confirmDeleteUser' role='form' action='" .
            htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
-	$form .= "<input type='hidden' name='action' value='confirmDeleteUser' />\n";
-	$form .= "<input type='hidden' name='bh_user_id' value='". $_POST['bh_user_id'] ."' />\n";
-	$form .= "<input type='radio' name='confirm' value='1'> Yes </input><br>\n";
-	$form .= "<input type='radio' name='confirm' value='0'> No </input><br>\n";
-	$form .= "<button type='submit' class='btn btn-lg btn-danger'>Confirm Delete User</button></form>";
-    print "<table align='center'> <tr><td>";
-    print $form;
-    print "</td></tr></table>";
+    	$form .= "<input type='hidden' name='action' value='confirmDeleteUser' />\n";
+    	$form .= "<input type='hidden' name='bh_user_id' value='". $_POST['bh_user_id'] ."' />\n";
+    	$form .= "<input type='radio' name='confirm' value='1'> Yes </input><br>\n";
+    	$form .= "<input type='radio' name='confirm' value='0'> No </input><br>\n";
+    	$form .= "<button type='submit' class='btn btn-lg btn-danger'>Confirm Delete User</button></form>";
+    	print "<table align='center'> <tr><td>";
+    	print $form;
+    	print "</td></tr></table>";
     } elseif ($_REQUEST['action'] == "confirmDeleteUser"){
         if ($_POST['confirm'] == 0) {
             goto listusers;
@@ -231,14 +240,14 @@
         } else {
             $errFlag = 1;
             $errMsg = "There was a problem deleting the user: $response";
-        }	
+        }
     } else {
         listusers:
         // generate the list of current users
         $user_table = listUsers();
         // we need to be able to edit individual users. by wrapping the list in a
         // form we can do that
-        print "<form id='userForm' name='userForm' class='form-horizontal col-6' action='" . htmlspecialchars($_SERVER['PHP_SELF']) . "' method='post' role='form' class='form-horizontal'>";     
+        print "<form id='userForm' name='userForm' class='form-horizontal col-6' action='" . htmlspecialchars($_SERVER['PHP_SELF']) . "' method='post' role='form' class='form-horizontal'>";
         print $user_table;
         print "<button type='submit' name='action' value='edit' class='btn btn-success'>Edit Selcted</button>";
         print "</form>";
@@ -249,11 +258,11 @@
     <script>
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doign here is using php to write javascript. 
+     // by the way, what we are doign here is using php to write javascript.
      // dirty!
      print "modalSetFormSrc(\"usermanagement\");";
      print "userManagementFormInfo(".$errFlag.", \"".$errMsg."\");";
-     ?>   
+     ?>
     </script>
 </div> <!-- main body-->
 </body>

@@ -1,4 +1,21 @@
 <?php
+/*
+ * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
+ *
+ *  Authors: Chris Rapier <rapier@psc.edu>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License. *
+ */
 
 /* do different things depending on what the user has decided to do
  * this function, even though I wrote it, strikes me as odd. I believe
@@ -33,18 +50,18 @@ function confirmBH($data) {
         $_SESSION['errFlag'] = -1;
         $_SESSION['errMsg'] = $data;
     }
-    
+
     if ($data == 1) {
         $_SESSION['errFlag'] = 1;
         $_SESSION['errMsg'] = "Route successfully added";
     }
     if ($data == -1) {
         $_SESSION['errFlag'] = -1;
-        $_SESSION['errMsg'] = "Invalid Route/IP Entered";    
+        $_SESSION['errMsg'] = "Invalid Route/IP Entered";
     }
     if ($data == -2) {
 	$_SESSION['errFlag'] = -1;
-        $_SESSION['errMsg'] = "Non Numeric Duration Entered";    
+        $_SESSION['errMsg'] = "Non Numeric Duration Entered";
     }
     if ($data == -3) {
         $_SESSION['errFlag'] = -1;
@@ -54,13 +71,13 @@ function confirmBH($data) {
 
 function buildTableJS ($type) {
     if ($type == "noedit") {
-	$container = "pagerNoEdit";
-	$tableid = "bhTableNoEdit";
-	$owner_list = "";
+    	$container = "pagerNoEdit";
+    	$tableid = "bhTableNoEdit";
+    	$owner_list = "";
     } else {
-	$container = "pager";
-	$tableid = "bhTable";
-	$owner_list = getOwnerData();
+    	$container = "pager";
+    	$tableid = "bhTable";
+    	$owner_list = getOwnerData();
     }
 
     $table_sorter_header = "
@@ -87,7 +104,7 @@ function buildTableJS ($type) {
 
     $table_edit = "
     $('#" . $tableid . "').Tabledit({
-	url: './editdb.php', 
+	url: './editdb.php',
 	editButton: true,
 	deleteButton: false,
 	onSuccess: function (data, textStatus, jqXHR) {
@@ -115,17 +132,17 @@ function buildTableJS ($type) {
 	    return;
 	},
 	columns: {
-	    identifier: [0, 'id'],                    
+	    identifier: [0, 'id'],
 	    editable: [[1, 'bh_active', '{\"0\": \"no\", \"1\": \"yes\"}'],
-		       [2, 'bh_route'],
-		       [3, 'bh_lifespan'],
-		       [10, 'bh_index'],
-		       [8, 'bh_owner_id','" . $owner_list . "'],
-                       [9, 'bh_comment', 'textarea']]
+    		[2, 'bh_route'],
+    		[3, 'bh_lifespan'],
+    		[10, 'bh_index'],
+    		[8, 'bh_owner_id','" . $owner_list . "'],
+    		[9, 'bh_comment', 'textarea']]
         }
     });\n";
 
-    $table_sorter_footer = "}); 
+    $table_sorter_footer = "});
 </script>
 <div class='" . $container . "'>
 Page: <select class='gotoPage'></select>
@@ -160,7 +177,7 @@ Page: <select class='gotoPage'></select>
 <tbody>";
 
     if ($type == "noedit") {
-	return $table_sorter_header . $table_sorter_footer . $table_header;
+    	return $table_sorter_header . $table_sorter_footer . $table_header;
     }
     return $table_sorter_header . $table_edit . $table_sorter_footer . $table_header;
 }
@@ -182,9 +199,9 @@ function getOwnerData() {
     //    $sth->close();
     $list = "{" . implode(",", $name_array) . "}";
     return $list;
-} 
+}
 
-/* formats the list of blackhole routes 
+/* formats the list of blackhole routes
  * request: display all routes or just active routes
  */
 function formatList($request) {
@@ -219,14 +236,14 @@ function formatList($request) {
          * don't want them to edit it. This works without modifying the tabledit js code.
          * NB: Someone can still change this value by modifying the value in the console
          */
-        print "\t<td style='display:none' id='bh_index' name='bh_index'>" . $row['bh_index'] . "</td>\n"; 
+        print "\t<td style='display:none' id='bh_index' name='bh_index'>" . $row['bh_index'] . "</td>\n";
         print "</tr>\n";
     }
     if ($editable_rows == 0) {
 	print "<tr><td align=center colspan=9>No Editable Routes Available</td></tr>";
     }
     print "</tbody>\n</table>\n";
-    
+
     if ($_SESSION['bh_user_role'] == 1 && $noeditflag == 1) {
 	/* print a table of non-editable rows  */
 	print "<hr>";
@@ -274,7 +291,7 @@ function findRemainingTime ($start, $life) {
     return $timeleft;
 }
 
-/* we need to build an option list of customers using the bh_clients table in the 
+/* we need to build an option list of customers using the bh_clients table in the
  * bhs database
  * inputs: optional user affiliation - customer id number
  * return: html option list or error
@@ -298,7 +315,7 @@ function buildCustomerList ($affiliation) {
     if (! isset($result)) {
         // The DB didn't return a result or there was an error
         $error = "No results were returned. This shouldn't happen unless you haven't created any customers after install.";
-        return array(-1, $error);    
+        return array(-1, $error);
     }
     $list = "<select name='bh_owner_id' class='form-control' required>\n";
     $list .= "<option value=''>---</option>\n";
@@ -332,7 +349,7 @@ function getClientNameFromID($clientid) {
     if (! isset($result)) {
         // The DB didn't return a result or there was an error
         $error = "No results were returned. This shouldn't happen unless you haven't created any customers after install.";
-        return array(-1, $error);    
+        return array(-1, $error);
     }
     return array(0, $result);
 }
@@ -354,4 +371,205 @@ function validateJSON ($json=null) {
 function printFooter () {
     exit;
 }
+
+
+/* we want to ensure that all submissions have a mask on them
+ * in case the user doesn't add one then we assume it's a single
+ * ip and add either a /32 for v4 or /128 for v6
+ */
+function normalizeRoute ($route) {
+	if (strpos($route, "/") !== false) {
+		list ($address, $mask) = explode ("/", $route);
+	} else {
+		$address = $route;
+	}
+
+	# make sure we have *something* here
+	if (!isset($address)) {
+		return -1;
+	}
+	/* they may not supply a mask so we need to assume that if they
+	* don't then it's a single address 32 for v4 & 128 for v6*/
+	if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+		if (!isset($mask)) {
+			$mask = 32;
+		}
+		return ($address . "/" . $mask);
+	}
+	if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+		if (!isset($mask)) {
+			$mask = 128;
+		}
+		return ($address . "/" . $mask);
+	}
+	return -1;
+}
+
+
+/* we need to ensure that the route requested lives in side
+ * of one of the address blocks owned by the customer
+ * so load the approved route blocks from the database
+ * if the incoming route is a /32 we just see if it's
+ * in one of those blocks
+ * if it is not a /32 we need to find the
+ * upper and lower bounds of the network and ensure that
+ * each of them exists within a block
+ * $route is the addess supplied by the user
+ * $client is the client/customer id as retreived from the user profile
+ */
+
+function validateRoute ($route, $clientid) {
+	/* we are importing a class to handle this but only
+	 * include it if we are goign to be using it. Ya know?
+	 */
+	include_once("./CIDR.php");
+
+	/* ensure that the address is in properl IP/mask format */
+
+	$route = normalizeRoute($route);
+
+	/* first we are going to ensure that the supplied route is actually
+	 * a valid ip address
+	*/
+
+	if (validateCIDR($route) == -1) {
+		return array (-1, "This address is not valid IPv4 or IPv6", null);
+	}
+
+	/* next by get the route blocks from the bh_clients table */
+	$dbh = getDatabaseHandle();
+	$query = "SELECT bh_client_blocks
+              FROM bh_clients
+              WHERE bh_client_id = :clientid";
+	try{
+		$sth = $dbh->prepare($query);
+		$sth->bindParam(':clientid', $clientid, PDO::PARAM_STR);
+		$sth->execute();
+		$result = $sth->fetch(PDO::FETCH_ASSOC);
+	}
+	catch(PDOException $e) {
+		// TODO need beter exception message passing here
+		$error =  "Something went wrong while interacting with the database:"
+				. $e->getMessage();
+		return array(-1, $error, null);
+	}
+	if (! isset($result)) {
+		// The DB didn't return a result or there was an error
+		$error = "No results were returned. There may be a problem with the database.";
+		return array (-1, $error, null);
+	}
+	$blocks = json_decode ($result['bh_client_blocks'], true);
+
+	/* now that we have the blocks we need to get the upper and lower
+	 * ranges of the user submitted route if they have a cidr mask */
+	list ($upper, $lower) = explodeAddress($route);
+
+	/* we now have the upper and lower bounds
+	 * right now i'm just going to brute force this and
+	 * not figure out if they are the same address
+	 * I'll just run both under the assumption that
+	 * it won't bog things down too much as opposed to
+	 * spending the time to write an elegant but of logic to
+	 * handle it properly. I need more coffee. This is obvious
+	*/
+
+	$cidrtest = new CIDR();
+
+	foreach ($blocks['blocks'] as $block) {
+		$uppertest = $cidrtest->match($upper, $block);
+		$lowertest = $cidrtest->match($lower, $block);
+		if ($uppertest === true and $lowertest === true) {
+			return array (1, null, $route);
+		}
+	}
+	/* no matches*/
+	return array (-1, "The IP address is not in range of any address blocks you control", null);
+}
+
+
+/* this find the high and low range of a CIDR route
+ * in other words it returns the network and broadcast address of
+ * any given IP with CIDR mask. Handles IPv4 and IPv6
+ * eg 10.0.0.1/24 would return 10.0.0.1 and 10.0.0.255
+ */
+function explodeAddress ($route) {
+
+	list($address, $mask) = explode ("/", $route);
+
+	/* if the mask is not set then it's a single address and not a range */
+	if (!isset($mask)) {
+		return array ($address, $address);
+	}
+
+	/* we need to determine if its an ipv4 or ipv6 */
+	if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+		if ($mask < 0 or $mask > 32) {
+			return array(-1, "Inavlid CIDR mask for IPv4");
+		}
+		/* get and return the network and broadcast */
+		$network = long2ip((ip2long($address)) & ((-1 << (32 - (int)$mask))));
+		$broadcast = long2ip((ip2long($network)) + pow(2, (32 - (int)$mask)) - 1);
+		return array($network, $broadcast);
+	}
+
+	if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) {
+		if ($mask < 0 or $mask > 128) {
+			return array(-1, "Invalid CIDR mask for IPv6");
+		}
+		/* the following is take from Sander Steffan at
+		 * https://stackoverflow.com/questions/10085266/php5-calculate-ipv6-range-from-cidr-prefix
+		 * because copypasta from stackoverflow is how we get things done
+		 */
+
+		// Parse the address into a binary string
+		$firstaddrbin = inet_pton($address);
+
+		// Convert the binary string to a string with hexadecimal characters
+		# unpack() can be replaced with bin2hex()
+		# unpack() is used for symmetry with pack() below
+		$firstaddrhex = reset(unpack('H*', $firstaddrbin));
+
+		// Overwriting first address string to make sure notation is optimal
+		$firstaddrstr = inet_ntop($firstaddrbin);
+
+		// Calculate the number of 'flexible' bits
+		$flexbits = 128 - $mask;
+
+		// Build the hexadecimal string of the last address
+		$lastaddrhex = $firstaddrhex;
+
+		// We start at the end of the string (which is always 32 characters long)
+		$pos = 31;
+		while ($flexbits > 0) {
+			// Get the character at this position
+			$orig = substr($lastaddrhex, $pos, 1);
+
+			// Convert it to an integer
+			$origval = hexdec($orig);
+
+			// OR it with (2^flexbits)-1, with flexbits limited to 4 at a time
+			$newval = $origval | (pow(2, min(4, $flexbits)) - 1);
+
+			// Convert it back to a hexadecimal character
+			$new = dechex($newval);
+
+			// And put that character back in the string
+			$lastaddrhex = substr_replace($lastaddrhex, $new, $pos, 1);
+
+			// We processed one nibble, move to previous position
+			$flexbits -= 4;
+			$pos -= 1;
+		}
+
+		// Convert the hexadecimal string to a binary string
+		# Using pack() here
+		# Newer PHP version can use hex2bin()
+		$lastaddrbin = pack('H*', $lastaddrhex);
+
+		// And create an IPv6 address from the binary string
+		$lastaddrstr = inet_ntop($lastaddrbin);
+		return array($firstaddrstr, $lastaddrstr);
+	}
+}
+
 ?>
