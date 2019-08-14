@@ -17,8 +17,8 @@
  * limitations under the License. *
  */
 
-/* this is the client managment interface for the
- * black hole project. Basically, we can create a client
+/* this is the customer managment interface for the
+ * black hole project. Basically, we can create a customer
  * that woudl correspond to an admintsrative network domain
  * and define what networks this domain owns. This is used to
  * ensure that users have the right the BH a route.
@@ -51,7 +51,7 @@
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <link rel="icon" href="../../favicon.ico">
-    <title>BlackHole Sun - New Client</title>
+    <title>BlackHole Sun - New Customer</title>
     <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -102,28 +102,28 @@
     $errFlag="";
     $errMsg="";
     $url = "";
-    if ($_POST['action'] == "addClient") {
-	if (!isset($_POST['client-asns'])) {
-	    $_POST['client-asns'] = "";
+    if ($_POST['action'] == "addCustomer") {
+	if (!isset($_POST['customer-asns'])) {
+	    $_POST['customer-asns'] = "";
 	}
-	$_POST['client-asns'] = normalizeListInput($_POST['client-asns']);
+	$_POST['customer-asns'] = normalizeListInput($_POST['customer-asns']);
 
-	if (!isset($_POST['client-vlans'])) {
-	    $_POST['client-vlans'] = "";
+	if (!isset($_POST['customer-vlans'])) {
+	    $_POST['customer-vlans'] = "";
 	}
-	$_POST['client-vlans'] = normalizeListInput($_POST['client-vlans']);
+	$_POST['customer-vlans'] = normalizeListInput($_POST['customer-vlans']);
 
 	// first thing we need to do is validate the submitted
 	// IP addresses and CIDR blocks. I want to provide feedback on
 	// individual bad IPs as opposed to the entire submission
 	// so we split the incoming set of IP/CIDR and run it through a validator
 
-	if(!isset($_POST['client-blocks'])) {
+	if(!isset($_POST['customer-blocks'])) {
 	    $errFlag = 1;
-	    $errMsg = "No client address blocks defined!";
+	    $errMsg = "No customer address blocks defined!";
 	} else {
-	    $_POST['client-blocks'] = normalizeListInput($_POST['client-blocks']);
-	    foreach (explode(",", $_POST['client-blocks']) as $cidr) {
+	    $_POST['customer-blocks'] = normalizeListInput($_POST['customer-blocks']);
+	    foreach (explode(",", $_POST['customer-blocks']) as $cidr) {
 		$cidr = trim($cidr);
 		if (validateCIDR($cidr) == -1) {
 		    $errFlag = 1;
@@ -139,11 +139,11 @@
             if (preg_match("/Success/", $response)) {
 		$url =  "/blackholesun/customers.php";
 		$errFlag = 0;
-		$errMsg = "New Client Successfully Added.";
+		$errMsg = "New Customer Successfully Added.";
             } else {
-		$url =  "/blackholesun/newclient.php";
+		$url =  "/blackholesun/newcustomer.php";
 		$errFlag = 1;
-		$errMsg = "Failed to add client: $response";
+		$errMsg = "Failed to add customer: $response";
             }
 	}
     }
@@ -160,8 +160,8 @@
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doing here is using php to write javascript.
      // dirty!
-     print "modalSetFormSrc(\"addClient\");\n";
-     print "addClientFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
+     print "modalSetFormSrc(\"addCustomer\");\n";
+     print "addCustomerFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
      ?>
     </script>
 </body>

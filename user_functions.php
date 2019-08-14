@@ -50,14 +50,14 @@ function listUsers()
 	// build an array that lets us convert the numeric value of the user affiliation into a
 	// textual value
 
-	$query = "SELECT bh_client_id,
-                     bh_client_name
-              FROM   bh_clients";
+	$query = "SELECT bh_customer_id,
+                     bh_customer_name
+              FROM   bh_customers";
 	$sth = $dbh->prepare($query);
 	$sth->execute();
-	$client_result = $sth->fetchall(PDO::FETCH_ASSOC);
-	foreach ($client_result as $line) {
-		$names[$line['bh_client_id']] = $line['bh_client_name'];
+	$customer_result = $sth->fetchall(PDO::FETCH_ASSOC);
+	foreach ($customer_result as $line) {
+		$names[$line['bh_customer_id']] = $line['bh_customer_name'];
 	}
 
 	// we have some results. Place them into a table structure
@@ -152,13 +152,13 @@ function newUserForm () {
 
 /* we need to get a list of available institutions. This allows us to limit
  * access to a specific set of address blocks asscoiated with that institution.
- * this is found in the tabel bh_clients
+ * this is found in the tabel bh_customers
  */
 function userAffiliationWidget($affiliation) {
 	$dbh = getDatabaseHandle();
-	$query = "SELECT bh_client_id,
-                     bh_client_name
-              FROM bh_clients";
+	$query = "SELECT bh_customer_id,
+                     bh_customer_name
+              FROM bh_customers";
 	try{
 		$sth = $dbh->prepare($query);
 		$sth->execute();
@@ -171,7 +171,7 @@ function userAffiliationWidget($affiliation) {
 	}
 	if (! isset($result)) {
 		// The DB didn't return a result or there was an error
-		print "No results were returned. The clients data tables might be empty.";
+		print "No results were returned. The customers data tables might be empty.";
 		return 0;
 	}
 	#build the drop down widget
@@ -179,10 +179,10 @@ function userAffiliationWidget($affiliation) {
 	$user_affiliation .= "<option value=''>---</option>\n";
 	foreach ($result as $line) {
 		$selected = "";
-		if ($affiliation == $line['bh_client_id']) {
+		if ($affiliation == $line['bh_customer_id']) {
 			$selected = "SELECTED";
 		}
-		$user_affiliation .= "<option $selected value='" . $line['bh_client_id'] . "'>" . $line['bh_client_name'] . "</option>\n";
+		$user_affiliation .= "<option $selected value='" . $line['bh_customer_id'] . "'>" . $line['bh_customer_name'] . "</option>\n";
 	}
 	$user_affiliation .= "</select>";
 	return $user_affiliation;

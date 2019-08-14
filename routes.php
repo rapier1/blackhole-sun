@@ -134,7 +134,7 @@
 						onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"
 						type="button" class="btn btn-sm btn-primary">Logout</button>
 				</p>
-				<p class="navbar-text"><?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_client_name']?>
+				<p class="navbar-text"><?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name']?>
 		</p>
 
 			</div>
@@ -160,7 +160,7 @@
 				<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
 					<input type="hidden" name="user_role"
 						value="<?php echo $_SESSION['user_role']?>"> <input type="hidden"
-						name="client_id" value="<?php echo $_SESSION['client_id']?>"> <input
+						name="customer_id" value="<?php echo $_SESSION['customer_id']?>"> <input
 						type="hidden" name="request" value="pushchanges"> <input
 						type="hidden" name="action" value="pushchanges"> <input
 						type="submit" name="submit" value="Normalize ExaBGP">
@@ -203,10 +203,10 @@
 			    		$errMsg = $list;
 			    	}
 			    } else {
-			    	list ( $error, $name ) = getClientNameFromID ( $_SESSION ['bh_client_id'] );
+			    	list ( $error, $name ) = getCustomerNameFromID ( $_SESSION ['bh_customer_id'] );
 			    	if ($error != - 1) {
 			    		print "<td>$name</td>";
-			    		print "<input type=hidden name='bh_client_id' value='" . $_SESSION ['bh_client_id'] . "'/>";
+			    		print "<input type=hidden name='bh_customer_id' value='" . $_SESSION ['bh_customer_id'] . "'/>";
 			    	} else {
 			    		$errFlag = - 1;
 			    		$errMsg = $name;
@@ -243,18 +243,18 @@
 					 * Many of the actions here require passing along the users
 					 * affiliation and role so append it to the POST data
 					 * the owner_id is the institution that created the route
-					 * the client_id is the institution that the route applies to
+					 * the customer_id is the institution that the route applies to
 					 * most of the time these should be the same but if an admin or
-					 * the like creates the route we want to ensure that the client
+					 * the like creates the route we want to ensure that the customer
 					 * can't modfy the route.
 					 */
-					$_POST ['bh_owner_id'] = $_SESSION ['bh_client_id'];
-					$_POST ['bh_client_id'] = $_SESSION ['bh_client_id'];
+					$_POST ['bh_owner_id'] = $_SESSION ['bh_customer_id'];
+					$_POST ['bh_customer_id'] = $_SESSION ['bh_customer_id'];
 					$_POST ['bh_user_role'] = $_SESSION ['bh_user_role'];
 
 					if ($_POST ['action'] == 'blackhole') {
 						list ( $validRouteFlag, $message, $normalized ) =
-							validateRoute ( $_POST ['bh_route'], $_SESSION ['bh_client_id'] );
+							validateRoute ( $_POST ['bh_route'], $_SESSION ['bh_customer_id'] );
 						if ($validRouteFlag != 1) {
 							$_SESSION ['errFlag'] = - 1;
 							$_SESSION ['errMsg'] = $message;

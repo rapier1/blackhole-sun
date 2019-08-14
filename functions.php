@@ -19,10 +19,6 @@
  * limitations under the License. *
  */
 
-/* time the user out after a certain period of inactivity.
- * TODO: set the inactivity time to a configurable value
- * used in multiple php files */
-
 /* TODO: prior to distribution any references to the private directory needs to be
  * shifted.
  */
@@ -30,7 +26,7 @@
 include_once './private/functions.cfg';
 
 function sessionTimer() {
-	$login_session_duration = $DURATION_TIMER*60; // DURATION_TIMER defined in functions.cfg
+	$login_session_duration = DURATION_TIMER * 60; // DURATION_TIMER defined in functions.cfg
 	$current_time = time();
 	if(isset($_SESSION['timer'])){
 		if(((time() - $_SESSION['timer']) > $login_session_duration)){
@@ -51,7 +47,7 @@ function getDatabaseHandle () {
 	// but it's just wrapper of php tags around the definitions for these variables.
 	ini_set('display_errors',1);
 	try {
-		$dbh = new PDO("mysql:host=$DB_HOST;dbname=$DB_NAME", $DB_USERNAME, $DB_PASSWORD);
+		$dbh = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
 	} catch (Exception $e) {
 		/* TODO: need better reporting here. */
 		print "Failed to connect $e->getMessage()";
@@ -133,7 +129,7 @@ function sendToProcessingEngine ($request) {
         exit;
     }
     /* connect to the local processing engine (client side interface to exabgp)*/
-    if (! socket_connect($sock, $EXASERVER_CLIENTSIDE, $EXASERVER_CLIENTPORT)) {
+    if (! socket_connect($sock, EXASERVER_CLIENTSIDE, EXASERVER_CLIENTPORT)) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
         print "Could not connect to processing engine: [$errorcode], $errormsg\n";
@@ -147,11 +143,7 @@ function sendToProcessingEngine ($request) {
         exit;
     }
     /* read the response */
-    /* TEMPNOTE i Need to have the processing
-     * engine spit some back to test that this works
-     * Might want to just take the inbound json (from here)
-     * reencode it, and spit it back 10/12/2018*/
-    if (!($buf = socket_read($sock, $EXASERVER_CLIENTBUFSIZ, PHP_NORMAL_READ))) {
+    if (!($buf = socket_read($sock, EXASERVER_CLIENTBUFSIZ, PHP_NORMAL_READ))) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
         die("Could not receive data: [$errorcode] $errormsg \n");

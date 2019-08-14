@@ -187,8 +187,8 @@ Page: <select class='gotoPage'></select>
  */
 function getOwnerData() {
     $dbh = getDatabaseHandle();
-    $query = "SELECT bh_client_id, bh_client_name
-              FROM bh_clients";
+    $query = "SELECT bh_customer_id, bh_customer_name
+              FROM bh_customers";
     $sth = $dbh->prepare($query);
     $sth->execute();
     $i=0;
@@ -229,7 +229,7 @@ function formatList($request) {
         print "\t<td>" . $row['bh_starttime'] . "</td>\n";
         print "\t<td>" . $remaining . "</td>\n";
         print "\t<td>" . $row['bh_requestor'] . "</td>\n";
-        print "\t<td id='bh_client' name='bh_client'>" . $row['bh_client_name'] . "</td>\n";
+        print "\t<td id='bh_customer' name='bh_customer'>" . $row['bh_customer_name'] . "</td>\n";
 	print "\t<td id='bh_owner_id' name ='bh_owner_id'>" . $row['bh_owner_name'] . "</td>\n";
 	print "\t<td id='bh_comment' name ='bh_comment'>" . $row['bh_comment'] . "</td>\n";
         /* we hide this cell - we need to be able to pass along the index value but we
@@ -265,7 +265,7 @@ function formatList($request) {
             print "\t<td>" . $row['bh_starttime'] . "</td>\n";
             print "\t<td>" . $remaining . "</td>\n";
             print "\t<td>" . $row['bh_requestor'] . "</td>\n";
-            print "\t<td>" . $row['bh_client_name'] . "</td>\n";
+            print "\t<td>" . $row['bh_customer_name'] . "</td>\n";
 	    print "\t<td>" . $row['bh_owner_name'] . "</td>\n";
 	    print "\t<td>" . $row['bh_comment'] . "</td>\n";
             print "</tr>\n";
@@ -291,7 +291,7 @@ function findRemainingTime ($start, $life) {
     return $timeleft;
 }
 
-/* we need to build an option list of customers using the bh_clients table in the
+/* we need to build an option list of customers using the bh_customers table in the
  * bhs database
  * inputs: optional user affiliation - customer id number
  * return: html option list or error
@@ -299,9 +299,9 @@ function findRemainingTime ($start, $life) {
 
 function buildCustomerList ($affiliation) {
     $dbh = getDatabaseHandle();
-    $query = "SELECT bh_client_id,
-                     bh_client_name
-              FROM bh_clients";
+    $query = "SELECT bh_customer_id,
+                     bh_customer_name
+              FROM bh_customers";
     try{
         $sth = $dbh->prepare($query);
         $sth->execute();
@@ -321,23 +321,23 @@ function buildCustomerList ($affiliation) {
     $list .= "<option value=''>---</option>\n";
     foreach ($result as $line) {
         $selected = "";
-        if ($affiliation == $line['bh_client_id']) {
+        if ($affiliation == $line['bh_customer_id']) {
 	    $selected = "SELECTED";
         }
-        $list .= "<option $selected value='" . $line['bh_client_id'] . "'>" . $line['bh_client_name'] . "</option>\n";
+        $list .= "<option $selected value='" . $line['bh_customer_id'] . "'>" . $line['bh_customer_name'] . "</option>\n";
     }
     $list .= "</select>";
     return array(0, $list);
 }
 
-function getClientNameFromID($clientid) {
+function getCustomerNameFromID($customerid) {
     $dbh = getDatabaseHandle();
-    $query = "SELECT bh_client_name
-              FROM bh_clients
-              WHERE bh_client_id = :clientid";
+    $query = "SELECT bh_customer_name
+              FROM bh_customers
+              WHERE bh_customer_id = :customerid";
     try{
         $sth = $dbh->prepare($query);
-        $sth->bindParam(':clientid', $clientid, PDO::PARAM_STR);
+        $sth->bindParam(':customerid', $customerid, PDO::PARAM_STR);
         $sth->execute();
         $result = $sth->fetchColumn();
     } catch(PDOException $e) {
@@ -415,10 +415,10 @@ function normalizeRoute ($route) {
  * upper and lower bounds of the network and ensure that
  * each of them exists within a block
  * $route is the addess supplied by the user
- * $client is the client/customer id as retreived from the user profile
+ * $customer is the customer/customer id as retreived from the user profile
  */
 
-function validateRoute ($route, $clientid) {
+function validateRoute ($route, $customerid) {
 	/* we are importing a class to handle this but only
 	 * include it if we are goign to be using it. Ya know?
 	 */
@@ -436,14 +436,14 @@ function validateRoute ($route, $clientid) {
 		return array (-1, "This address is not valid IPv4 or IPv6", null);
 	}
 
-	/* next by get the route blocks from the bh_clients table */
+	/* next by get the route blocks from the bh_customers table */
 	$dbh = getDatabaseHandle();
-	$query = "SELECT bh_client_blocks
-              FROM bh_clients
-              WHERE bh_client_id = :clientid";
+	$query = "SELECT bh_customer_blocks
+              FROM bh_customers
+              WHERE bh_customer_id = :customerid";
 	try{
 		$sth = $dbh->prepare($query);
-		$sth->bindParam(':clientid', $clientid, PDO::PARAM_STR);
+		$sth->bindParam(':customerid', $customerid, PDO::PARAM_STR);
 		$sth->execute();
 		$result = $sth->fetch(PDO::FETCH_ASSOC);
 	}
@@ -458,7 +458,7 @@ function validateRoute ($route, $clientid) {
 		$error = "No results were returned. There may be a problem with the database.";
 		return array (-1, $error, null);
 	}
-	$blocks = json_decode ($result['bh_client_blocks'], true);
+	$blocks = json_decode ($result['bh_customer_blocks'], true);
 
 	/* now that we have the blocks we need to get the upper and lower
 	 * ranges of the user submitted route if they have a cidr mask */

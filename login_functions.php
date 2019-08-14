@@ -67,10 +67,10 @@ function logIn($username, $password)
 		$_SESSION["fname"] = $queryResult["bh_user_fname"];
 		$_SESSION["lname"] = $queryResult["bh_user_lname"];
 		$_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
-				$_SESSION["bh_client_id"] = $queryResult["bh_user_affiliation"];
-				list($error, $_SESSION["bh_client_name"]) = getName($queryResult["bh_user_affiliation"]);
+				$_SESSION["bh_customer_id"] = $queryResult["bh_user_affiliation"];
+				list($error, $_SESSION["bh_customer_name"]) = getName($queryResult["bh_user_affiliation"]);
 						if ($error == -1) {
-                print "Error: " . $_SESSION['bh_client_name'] . " . Halting.";
+                print "Error: " . $_SESSION['bh_customer_name'] . " . Halting.";
 	}
                 		$_SESSION["timer"]= time();
 				if ($queryResult["bh_user_force_password"]) {
@@ -88,9 +88,9 @@ function logIn($username, $password)
 
 function getName($customer_id) {
 	$dbh = getDatabaseHandle();
-	$query = "SELECT bh_client_name
-              FROM bh_clients
-              WHERE bh_client_id = :customer_id";
+	$query = "SELECT bh_customer_name
+              FROM bh_customers
+              WHERE bh_customer_id = :customer_id";
 	try{
 		$sth = $dbh->prepare($query);
 		$sth->bindParam(':customer_id', $customer_id, PDO::PARAM_STR);
@@ -103,7 +103,7 @@ function getName($customer_id) {
 	}
 	if (! isset($result)) {
 		// The DB didn't return a result or there was an error
-		return array(-1, "No results were returned. The clients data tables might be empty.");
+		return array(-1, "No results were returned. The customers data tables might be empty.");
 	}
 	return array (1, $result[0]);
 }
