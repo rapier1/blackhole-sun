@@ -40,6 +40,7 @@
 
 use strict;
 use warnings;
+use JSON;
 use Sys::Syslog qw(:standard :macros);
 use IO::Socket::SSL qw(inet4);
 use IO::Socket::INET;
@@ -76,12 +77,17 @@ sub readConfig {
 # we need to make sure that all of the configuration 
 # variables exist and validates them as best we can.
 sub validateConfig {
-#check db data
     if (! defined $config->{'server'}->{'listen'}) {
         print STDERR "Listen port not defined in config file. Exiting\n";
 	$logger->error("Listen port not defined in config file. Exiting");
         exit;
     }
+    if (! defined $config->{'server'}->{'host'}) {
+        print STDERR "Host not defined in config file. Exiting\n";
+	$logger->error("Host port not defined in config file. Exiting");
+        exit;
+    }
+#check db data
     if (! defined $config->{'keys'}->{'server_private_rsa'}) {
         print STDERR "Missing DB host infomation in config file. Exiting\n";
 	$logger->error("Missing DB host infomation in config file. Exiting");
@@ -175,50 +181,53 @@ sub authorize {
 }
 
 sub processInput {
+    use Data::Dumper;
     my $cli_socket = shift; # client socket
     my $client_input = shift;
     my $response;
-    my %request = decode_json($client_input);
+    my $request = decode_json($client_input);
 
+    #print Dumper($request);
+    
     #request{action}
     #request{route}
 
-    if ($request{'action'} == "add") {
-	$response = &addBHroute($request{'route'});
+    $logger->debug("in processInput with route: " . $request->{'route'} . " and action: " . $request->{'action'});
+    if ($request->{'action'} eq "add") {
+	$response = &addBHRoute($request->{'route'});
     }
 
-    if ($request{'action'} == "dump") {
+    if ($request->{'action'} eq "dump") {
 	$response = &dumpRoutes();
     }
     
-    if ($request{'action'} == "del") {
-	$response = &withdrawRoutes($request{'route'});
+    if ($request->{'action'} eq "del") {
+	$response = &withdrawRoutes($request->{'route'});
     }
-
     print $cli_socket $response;
 }
  
 sub addBHRoute {
     my $route = shift;
-    
+
     # the template for each blackhole route configuration in the config
     # file in the format of template_n so step through each and replace
     # the route keyword with the route to blackhole
-    $logger->debug("In addBHRoute with $route and  $config->{templates}->{total_templates} templates");
+    $logger->debug("In addBHRoute with $route->{bh_route} and  $config->{templates}->{total_templates} templates");
     for (my $i = 1; $i <= $config->{'templates'}->{'total_templates'}; $i++) {
 	my $templateNum = "template_" . $i;
 	my $template = $config->{'templates'}->{$templateNum};
 	$logger->debug("template is $template for $templateNum");
-	$template =~ s/_route_/$route/;
+	$template =~ s/_route_/$route->{bh_route}/;
 	$logger->debug("Transformed template is $template");
 	# we just print to STDOUT to send it to the ExaBGP process
 	print STDOUT $template ."\n";
 	$logger->debug("sending $template to ExaBGP")
     }
-    return;
+    return "Success";
 }
     
-sub dumpRoute {
+sub dumpRoutes {
     # this is a test to see if we can grab the data from exabgp.
     # this isn't the way I'd like to do it but it seems to work effectively
     # so I'm not going to complain too much right now. 
@@ -227,7 +236,7 @@ sub dumpRoute {
     my $exit;
     ($data, $stderr, $exit) = capture {
 	system ("/usr/local/bin/exabgpcli show adj-rib out");
-    }
+    };
     return $data;
 }
 
@@ -238,7 +247,7 @@ sub withdrawRoutes {
 	my $template = $config->{'templates'}->{$templateNum};
 	$logger->debug("template is $template for $templateNum");
 	$template =~ s/announce/withdraw/;
-	$template =~ s/_route_/$route/;
+	$template =~ s/_route_/$route->{'bh_route'}/;
 	$logger->debug("Transformed template is $template");
 	# we just print to STDOUT to send it to the ExaBGP process
 	print STDOUT $template ."\n";
@@ -250,9 +259,9 @@ sub withdrawRoutes {
 sub startServer {
     my $authorized = -1;
     $SIG{CHLD} = sub {wait ()};
-    my $server = IO::Socket::INET->new(LocalAddr => 'localhost',
+    my $server = IO::Socket::INET->new(LocalAddr => $config->{'server'}->{'host'},
 				       LocalPort => $config->{'server'}->{'listen'},
-				       Listen => 5,
+				       Listen => SOMAXCONN,
 				       Proto => 'tcp',
 				       Reuse => 1,
 				       Timeout => 1,
@@ -269,8 +278,8 @@ sub startServer {
 		close ($child);
 	    }
 	    IO::Socket::Timeout->enable_timeouts_on($child);
-	    $child->read_timeout(5);
-	    $child->write_timeout(5);
+	    $child->read_timeout(1);
+	    $child->write_timeout(1);
 	    if ($pid == 0) {
 		my $response = <$child>;
 		if ($response =~ /auth/i) {
@@ -289,6 +298,7 @@ sub startServer {
 			    print $child "Quitting\n";
 			    close ($child);
 			}
+			$logger->debug("Sending $buf to processInput");
 			processInput($child, $buf);
 		    }
 		    exit(0); # Child process exits when it is done.
