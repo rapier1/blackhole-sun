@@ -18,6 +18,7 @@
  */
 include("./functions.php");
 header('Content-Type: application/json');
+/*
 $args = array (
     'bh_route' => FILTER_SANITIZE_STRING,
     'action' => FILTER_SANITIZE_STRING,
@@ -27,13 +28,16 @@ $args = array (
     'bh_customer_id' => FILTER_VALIDATE_INT,
     'bh_user_role' => FILTER_VALIDATE_INT,
     'bh_owner_id' => FILTER_SANITIZE_STRING,
-    'bh_comment' => FILTER_SANITIZE_STRING
-);
+    'bh_comment' => FILTER_SANITIZE_STRING,
+    'bh_requestor' => FILTER_SANTIZE_STRING
+    );
+*/
 
-$input = filter_input_array(INPUT_POST, $args);
+$input = filter_input_array(INPUT_POST);
 
 $request = json_encode($input);
 $response = sendToProcessingEngine($request);
-
+list($result, $msg) = emailNotification($request);
+/* not doing anything with the above yet */
 echo json_encode($response);
 ?>

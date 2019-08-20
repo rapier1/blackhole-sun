@@ -85,200 +85,214 @@
 	src="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.js"></script>
 
 
-    <?php
-    session_start ();
-    if (empty ( $_SESSION ["username"] )) {
-    	header ( "Location: http://" . $_SERVER ['SERVER_NAME'] . "/blackholesun/login.php" );
-    	die ();
-    }
-    include ("./functions.php");
-    include ("./routeentry_functions.php");
-    ?>
+<?php
+session_start ();
+if (empty ( $_SESSION ["username"] )) {
+    header ( "Location: http://" . $_SERVER ['SERVER_NAME'] . "/blackholesun/login.php" );
+    die ();
+}
+include ("./functions.php");
+include ("./route_functions.php");
+?>
 
 </head>
 
 <body>
     <?php include ("./modals.php"); ?>
     <nav class="navbar navbar-inverse navbar-fixed-top">
-		<div class="container">
-			<div class="navbar-header">
-				<div class="navbar-brand">BlackHole Sun</div>
-			</div>
-			<div id="navbar" class="collapse navbar-collapse">
-				<ul class="nav navbar-nav">
-					<li><a id="menu-home"
-						href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-					<li><a id="menu-faq"
-						href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-				</ul>
-				<p class="navbar-right navbar-btn">
-					<button id="account"
-						onClick="window.location=
-                                                           'http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/accountmgmt.php'"
-						type="button" class="btn btn-sm btn-primary">Account</button>
-				</p>
+	<div class="container">
+	    <div class="navbar-header">
+		<div class="navbar-brand">BlackHole Sun</div>
+	    </div>
+	    <div id="navbar" class="collapse navbar-collapse">
+		<ul class="nav navbar-nav">
+		    <li><a id="menu-home"
+			   href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
+		    <li><a id="menu-faq"
+			   href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+		</ul>
+		<p class="navbar-right navbar-btn">
+		    <button id="account" onClick="window.location=
+                                'http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/accountmgmt.php'"
+				type="button" class="btn btn-sm btn-primary">Account</button>
+		</p>
 		<?php
 		$_SESSION ['errFlag'] = 0;
 		$_SESSION ['errMsg'] = "";
 		if ($_SESSION ['bh_user_role'] == 4) {
-			print "<p class='navbar-right navbar-btn'><button id='userManagement'
-                           onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME'] . "/blackholesun/usermanagement.php'\"  type='button'
+		    print "<p class='navbar-right navbar-btn'><button id='userManagement'
+                           onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME']
+			   . "/blackholesun/usermanagement.php'\"  type='button'
                            class='btn btn-sm btn-primary'>Users</button></p>";
-			print "<p class='navbar-right navbar-btn'><button id='customers'
-                           onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME'] . "/blackholesun/customers.php'\"  type='button'
+		    print "<p class='navbar-right navbar-btn'><button id='customers'
+                           onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME']
+			   . "/blackholesun/customers.php'\"  type='button'
                            class='btn btn-sm btn-primary'>Customers</button></p>";
 		}
 		?>
 		<p class="navbar-right navbar-btn">
-					<button id="logout"
-						onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"
-						type="button" class="btn btn-sm btn-primary">Logout</button>
-				</p>
-				<p class="navbar-text"><?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name']?>
+		    <button id="logout"
+				onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"
+				type="button" class="btn btn-sm btn-primary">Logout</button>
 		</p>
-
-			</div>
-			<!--/.nav-collapse -->
-		</div>
-		<!-- END nav container -->
-	</nav>
-
-	<div class="container-fluid text-left">
-		<!-- indent the main body -->
-		<div class="row content">
-			<div class="col-sm-2 sidenav">
-				<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
-					<input type="hidden" name="request" value="listexisting"> <input
-						type="hidden" name="action" value="listexisting"> <input
-						type="submit" name="submit" value="Show All Routes">
-				</form>
-				<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
-					<input type="hidden" name="request" value="listactive"> <input
-						type="hidden" name="action" value="listactive"> <input
-						type="submit" name="submit" value="Active Routes">
-				</form>
-				<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
-					<input type="hidden" name="user_role"
-						value="<?php echo $_SESSION['user_role']?>"> <input type="hidden"
-						name="customer_id" value="<?php echo $_SESSION['customer_id']?>"> <input
-						type="hidden" name="request" value="pushchanges"> <input
-						type="hidden" name="action" value="pushchanges"> <input
-						type="submit" name="submit" value="Normalize ExaBGP">
-				</form>
-			</div>
-			<div class="col-sm-9 text-left">
-				Enter Route to Blackhole
-				<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
-					<table>
-						<thead>
-							<tr>
-								<th>Route</th>
-								<th>Duration</th>
-								<th>Start Date</th>
-								<th>Time</th>
-								<th>Customer</th>
-								<th>Comments</th>
-							</tr>
-							</tr>
-						</thead>
-						<tr valign="top">
-							<td><input type="text" id="bh_route" name="bh_route" required></td>
-							<td><input type="text" id="bh_lifespan" name="bh_lifespan"
-								value="72" required></td>
-							<td><input type="date" id="bh_startdate" name="bh_startdate"
-								required></td>
-							<td><input type="time" id="bh_starttime" name="bh_starttime"
-								required></td>
+		<p class="navbar-text"><?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name']?>
+		</p>
+		
+	    </div>
+	    <!--/.nav-collapse -->
+	</div>
+	<!-- END nav container -->
+    </nav>
+    
+    <div class="container-fluid text-left">
+	<!-- indent the main body -->
+	<div class="row content">
+	    <div class="col-sm-2 sidenav">
+		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
+		    <input type="hidden" name="request" value="listexisting">
+		    <input type="hidden" name="action" value="listexisting"> 
+		    <input type="submit" name="submit" value="Show All Routes">
+		</form>
+		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
+		    <input type="hidden" name="request" value="listactive"> 
+		    <input type="hidden" name="action" value="listactive"> 
+		    <input type="submit" name="submit" value="Active Routes">
+		</form>
+		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
+		    <input type="hidden" name="bh_user_role"
+			   value="<?php echo $_SESSION['user_role']?>">
+		    <input type="hiddeb" name="bh_customer_id"
+			   value="<?php echo $_SESSION['customer_id']?>"> 
+		    <input type="hidden" name="request" value="pushchanges"> 
+		    <input type="hidden" name="action" value="pushchanges"> 
+		    <input type="submit" name="submit" value="Normalize ExaBGP">
+		</form>
+                <form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
+		    <input type="hidden" name="bh_user_role"
+			   value="<?php echo $_SESSION['user_role']?>">
+		    <input type="hidden" name="bh_customer_id"
+			   value="<?php echo $_SESSION['customer_id']?>">
+		    <input type="hidden" name="request" value="getexaroutes">
+		    <input type="hidden" name="action" value="getexaroutes">
+		    <input type="submit" name="submit" value="List ExaBGP Routes">
+		</form>
+	    </div>
+	    <div class="col-sm-9 text-left">
+		Enter Route to Blackhole
+		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
+		    <table>
+			<thead>
+			    <tr>
+				<th>Route</th>
+				<th>Duration</th>
+				<th>Start Date</th>
+				<th>Time</th>
+				<th>Customer</th>
+				<th>Comments</th>
+			    </tr>
+			    </tr>
+			</thead>
+			<tr valign="top">
+			    <td><input type="text" id="bh_route" name="bh_route" required></td>
+			    <td><input type="text" id="bh_lifespan" name="bh_lifespan"
+					     value="72" required></td>
+			    <td><input type="date" id="bh_startdate" name="bh_startdate"
+					     required></td>
+			    <td><input type="time" id="bh_starttime" name="bh_starttime"
+					     required></td>
 			    <?php
-			    /*
-			    * the following include loads all of the functions
-			    * specific to this page
-			    */
 			    if ($_SESSION ['bh_user_role'] != 1) {
 			    	list ( $error, $list ) = buildCustomerList ( NULL );
 			    	if ($error != - 1) {
-			    		print "<td>$list</td>";
+			    	    print "<td>$list</td>";
 			    	} else {
-			    		$errFlag = - 1;
-			    		$errMsg = $list;
+			    	    $errFlag = - 1;
+			    	    $errMsg = $list;
 			    	}
 			    } else {
 			    	list ( $error, $name ) = getCustomerNameFromID ( $_SESSION ['bh_customer_id'] );
 			    	if ($error != - 1) {
-			    		print "<td>$name</td>";
-			    		print "<input type=hidden name='bh_customer_id' value='" . $_SESSION ['bh_customer_id'] . "'/>";
+			    	    print "<td>$name</td>";
+			    	    print "<input type=hidden name='bh_customer_id' value='" . $_SESSION ['bh_customer_id'] . "'/>";
 			    	} else {
-			    		$errFlag = - 1;
-			    		$errMsg = $name;
+			    	    $errFlag = - 1;
+			    	    $errMsg = $name;
 			    	}
 			    }
 			    ?>
 			    <td><textarea rows="2" columns="40" name="bh_comment"
-									id="bh_comment"></textarea></td>
-						</tr>
-					</table>
-					<input type="hidden" name="bh_requestor"
-						value="<?php echo $_SESSION['username'];?>"> <input type="hidden"
-						name="action" value="blackhole"> <input type="submit"
-						name="submit" value="Add BH Route">
-				</form>
-				<script>
-		    	document.getElementById("bh_startdate").valueAsDate = new Date();
-			    var hours = new Date().getHours();
-			    var minutes = new Date().getUTCMinutes();
-			    if (minutes < 10) {
-				    minutes = "0" + minutes;
-				}
-				time = hours + ":" + minutes;
-				document.getElementById("bh_starttime").value = time;
-				</script>
-				<?php
-				/* set this to your local timezone */
-				/* this is needed for the time/date calcs */
-				date_default_timezone_set ( 'America/New_York' );
-
-				if (isset ( $_POST ['submit'] )) {
-					/* We have form data */
-					/*
-					 * Many of the actions here require passing along the users
-					 * affiliation and role so append it to the POST data
-					 * the owner_id is the institution that created the route
-					 * the customer_id is the institution that the route applies to
-					 * most of the time these should be the same but if an admin or
-					 * the like creates the route we want to ensure that the customer
-					 * can't modfy the route.
-					 */
-					$_POST ['bh_owner_id'] = $_SESSION ['bh_customer_id'];
-					$_POST ['bh_customer_id'] = $_SESSION ['bh_customer_id'];
-					$_POST ['bh_user_role'] = $_SESSION ['bh_user_role'];
-
-					if ($_POST ['action'] == 'blackhole') {
-						list ( $validRouteFlag, $message, $normalized ) =
-							validateRoute ( $_POST ['bh_route'], $_SESSION ['bh_customer_id'] );
-						if ($validRouteFlag != 1) {
-							$_SESSION ['errFlag'] = - 1;
-							$_SESSION ['errMsg'] = $message;
-						}
-						$_POST ['bh_route'] = $normalized;
-					}
-					if ($_SESSION ['errFlag'] != - 1) {
-						/*
-						* send the command to a function that will
-						* determine the next set of routines to run in
-						* order to get the data.
-						*/
-						$request = json_encode ( $_POST ) . "\n";
-						$response = sendToProcessingEngine ( $request );
-						/* hopefully we have a reponse */
-						parseResponse ( $_POST ['action'], $response);
-					}
-				}
-				?>
-			</div>
-		</div>
+						id="bh_comment"></textarea></td>
+			</tr>
+		    </table>
+		    <input type="hidden" name="bh_requestor"
+			   value="<?php echo $_SESSION['username'];?>">
+		    <input type="hidden" name="action" value="blackhole">
+		    <input type="submit" name="submit" value="Add BH Route">
+		</form>
+		<script>
+		 document.getElementById("bh_startdate").valueAsDate = new Date();
+		 var hours = new Date().getHours();
+		 var minutes = new Date().getUTCMinutes();
+		 if (minutes < 10) {
+		     minutes = "0" + minutes;
+		 }
+		 time = hours + ":" + minutes;
+		 document.getElementById("bh_starttime").value = time;
+		</script>
+		<?php
+		/* set this to your local timezone */
+		/* this is needed for the time/date calcs */
+		date_default_timezone_set ( 'America/New_York' );
+		
+		if (isset ( $_POST ['submit'] )) {
+		    /* We have form data */
+		    /*
+		     * Many of the actions here require passing along the users
+		     * affiliation and role so append it to the POST data
+		     * the owner_id is the institution that created the route
+		     * the customer_id is the institution that the route applies to
+		     * most of the time these should be the same but if an admin or
+		     * the like creates the route we want to ensure that the customer
+		     * can't modfy the route.
+		     */
+		    $_POST ['bh_owner_id'] = $_SESSION ['bh_customer_id'];
+		    $_POST ['bh_customer_id'] = $_SESSION ['bh_customer_id'];
+		    $_POST ['bh_user_role'] = $_SESSION ['bh_user_role'];
+		    
+		    if ($_POST ['action'] == 'blackhole') {
+			list ( $validRouteFlag, $message, $normalized ) =
+			    validateRoute ( $_POST ['bh_route'], $_SESSION ['bh_customer_id'] );
+			if ($validRouteFlag != 1) {
+			    $_SESSION ['errFlag'] = -1;
+			    $_SESSION ['errMsg'] = $message;
+			}
+			$_POST ['bh_route'] = $normalized;
+		    }
+		    if ($_SESSION ['errFlag'] != -1) {
+			/*
+			 * send the command to a function that will
+			 * determine the next set of routines to run in
+			 * order to get the data.
+			 */
+			$request = json_encode ( $_POST ) . "\n";
+			$response = sendToProcessingEngine ( $request );
+			/* hopefully we have a reponse */
+			parseResponse ( $_POST ['action'], $response);
+                        if ($_POST['action'] == 'blackhole') {
+                            list ($result, $msg) = emailNotification($request);
+                            if ($result != 1) {
+                                $errFlag = 1;
+                                $errMsg = "Failed to send email notification but the routes are enabled: $msg";
+                            }
+                        }
+                    }
+                }
+		?>
+	    </div>
 	</div>
-	<!-- modals handler -->
-	<script type="text/javascript">
+    </div>
+    <!-- modals handler -->
+    <script type="text/javascript">
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doing here is using php to write javascript.
@@ -288,5 +302,5 @@
      $_SESSION ['errFlag'] = 0;
      $_SESSION ['errMsg'] = "";
      ?>
-     </script>
+    </script>
 </body>

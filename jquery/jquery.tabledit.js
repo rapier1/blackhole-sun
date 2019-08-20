@@ -130,6 +130,10 @@ if (typeof jQuery === 'undefined') {
 				    settings.columns.editable[i][1] + '" style="display: none;" disabled>' +
 				    $(this).text() + '</textarea>';
 			    }
+			    else if (settings.columns.editable[i][2] == 'hidden') {
+				$td.hide();
+				var input = '<input hidden class="tabledit-input ' + settings.inputClass + '" type="text" name="' + settings.columns.editable[i][1] + '" value="' + $(this).text() + '" style="display: none;" disabled>';
+			    }
 			    else if ((typeof settings.columns.editable[i][2] !== 'undefined') && (settings.columns.editable[i][2] != 'textarea')) {
                                 // Create select element.
                                 var input = '<select class="tabledit-input ' + settings.inputClass + '" name="' + settings.columns.editable[i][1] + '" style="display: none;" disabled>';

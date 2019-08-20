@@ -3,8 +3,8 @@
  * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
  *  Authors: Chris Rapier <rapier@psc.edu>
- *          Nate Robinson <nate@psc.edu>
- *          Bryan Learn <blearn@psc.edu>
+ *           Nate Robinson <nate@psc.edu>
+ *           Bryan Learn <blearn@psc.edu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ function sessionTimer() {
 	$login_session_duration = DURATION_TIMER * 60; // DURATION_TIMER defined in functions.cfg
 	$current_time = time();
 	if(isset($_SESSION['timer'])){
-		if(((time() - $_SESSION['timer']) > $login_session_duration)){
+		if ((time() - $_SESSION['timer']) > $login_session_duration) {
 			header("Location:http://". $_SERVER['SERVER_NAME'] . "/blackholesun/timeout.php");
 		}
 		// update the time
@@ -85,7 +85,7 @@ function validateCIDR($cidr) {
 		return -1;
 	}
 	/* they may not supply a mask so we need to assume that if they
-	* don't then it's a single address 32 for v4 & 128 for v6*/
+     * don't then it's a single address 32 for v4 & 128 for v6*/
 	if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
 		if (!isset($mask)) {
 			$mask = 32;
@@ -103,6 +103,35 @@ function validateCIDR($cidr) {
 		}
 	}
 	return -1;
+}
+
+/* we want to be able to alert people when a route is added or 
+ * modified. The goal is to alert everyone with an email address
+ * associated with the customer who owns that particular route. We also
+ * need to send email to staff/admin contacts 
+ * we take the incoming user id and use that to determine the affiliated
+ * customer. We then use that to extract all email addresses on that account
+ * we then extract all email addresses with a non-user role (3 and 4)
+ * we bundles all of those up and send the update out
+ * NOTE: Almost all of this happens in the client interface and
+ * not here. this is just an entry method
+ * inputs: route_info (stringified json)
+ * return: 1 on success -1 and errmsg on failure       
+ */
+
+function emailNotification ($route_info) {
+    #convert the stringified json back into an object
+    $json = json_decode($route_info);
+    # change the action
+    $json->{'action'} = "email";
+    # re-encode it. Might be easier to do a regex replace on blackhole/email
+    # but this way we absolutely ensure that we only modify the action parameter
+    $route_info = json_encode($json);
+    $response = sendToProcessingEngine($route_info);
+    if (!preg_match("/Success/", $response)) {
+        return array(-1, $response);
+    }
+    return array(1, NULL);
 }
 
 /* a user might enter a CSV list with extra commas or spaces or

@@ -103,7 +103,11 @@ sub validateConfig {
 	$logger->error("The client's public RSA file is missing or not readable. Exiting.");
         exit;
     }
-
+    if (! defined $config->{'exabgp'}->{'exabgp.in'}) {
+        print STDERR "ExaBGP in pipe file location not defined in config file. Exiting\n";
+	$logger->error("ExaBGP in pipe file location not defined in config file. Exiting");
+        exit;
+    }
 
 }
 
@@ -196,6 +200,17 @@ sub processInput {
 	$response = &withdrawRoutes($request{'route'});
     }
 
+    if ($request{'action'} == "exabeat") {
+	$response = 1;
+    }
+
+    if ($request{'action'} == "bgpbeat") {
+	$response = 0;
+	if (-e $config->{'exabgp'}->{'exabgp.in'}) {
+	    $response = 1;
+	} 
+    }
+    
     print $cli_socket $response;
 }
  

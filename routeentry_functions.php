@@ -34,6 +34,9 @@ function parseResponse ($action, $data) {
 	case 'listactive':
 	    formatList($data);
 	    break;
+    case 'dumproutes':
+        formatExaDump($data);
+        breal;
 	case 'deleteselection':
 	case 'confirmbhdata':
 	case 'quit':
@@ -272,6 +275,10 @@ function formatList($request) {
 	}
 	print "</tbody>\n</table>\n";
     }
+}
+
+function formatExaDump ($data) {
+    
 }
 
 function findRemainingTime ($start, $life) {
