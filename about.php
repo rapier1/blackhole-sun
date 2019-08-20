@@ -2,7 +2,7 @@
 /*
  * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
- *  Authors: Chris Rapier <rapier@psc.edu> 
+ *  Authors: Chris Rapier <rapier@psc.edu>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -10,19 +10,13 @@
  *
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software 
+ * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License. *
  */
 
-/* this is the user and group managment interface for the 
- * black hole project. I'm still nailing down the various 
- * portions that really matter but we need to start with 
- * some basics - username, password, class of user, contact
- * information, etc. 
- */
 ?>
 <!DOCTYPE html>
 <head>
@@ -34,7 +28,7 @@
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <link rel="icon" href="../../favicon.ico">
     <title>BlackHole Sun</title>
-    <link href="jquery/datatables.css" rel="stylesheet">                                                              
+    <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -66,6 +60,34 @@
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
 		</ul>
+		<?php
+		include './functions.php';
+		session_start();
+		if (!empty($_SESSION["username"]))
+		{
+		    sessionTimer();
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"routeList\"
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/routes.php'\"
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Route List</button></p>";
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\"
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\"
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Logout</button></p>";
+		} else {
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\"
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\"
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Login</button></p>";
+		}
+		if ($_SESSION["bh_user_role"] == 4)
+		{
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"usermanagement\"
+                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/usermanagement.php'\"
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Users</button></p>";
+		    print "<p class=\"navbar-right navbar-btn\"><button id=\"customers\"
+                           onClick=\"window.location='http://". $_SERVER['SERVER_NAME'] ."/blackholesun/customers.php'\"
+                           type=\"button\" class=\"btn btn-sm btn-primary\">Customers</button></p>";
+		}
+		?>
+            </div><!--/.nav-collapse -->
 	    </div> <!-- navbar -->
 	</div> <!-- END nav container -->
     </nav>

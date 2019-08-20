@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 The Board of Trustees of Carnegie Mellon University.
+ * Copyright (c) 2019 The Board of Trustees of Carnegie Mellon University.
  *
  *  Authors: Chris Rapier <rapier@psc.edu> 
  *          Nate Robinson <nate@psc.edu>
@@ -61,8 +61,30 @@ function modalMessage(type, messageBody){
     $(modalID[type]).modal('show');
 }
 
-function managementFormInfo(flag, msg) {
-    if (formSrc == "management") {
+function userManagementFormInfo(flag, msg) {
+    if (formSrc == "userManagement") {
+	if (flag == 0) {
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+function customersFormInfo(flag, msg) {
+    if (formSrc == "customers") {
+	if (flag == 0) {
+	    modalMessage('success', msg);
+	}
+	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+function addCustomerFormInfo(flag, msg) {
+    if (formSrc == "addCustomer") {
 	if (flag == 0) {
 	    modalMessage('success', msg);
 	}
@@ -78,6 +100,17 @@ function accountMgmtFormInfo(flag, msg) {
 	    modalMessage('success', msg);
 	}
 	if (flag == 1) {
+	    modalMessage('error', msg);
+	}
+    }
+}
+
+function mainpageFormInfo(flag, msg) {
+    if (formSrc == "mainpage") {
+	if (flag == 1) {
+	    modalMessage('success', msg);
+	}
+	if (flag == -1) {
 	    modalMessage('error', msg);
 	}
     }
