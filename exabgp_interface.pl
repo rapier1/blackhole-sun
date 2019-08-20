@@ -210,15 +210,17 @@ sub processInput {
     }
 
     if ($request{'action'} == "exabeat") {
-	$response = "Success";
+	$response = "Success\n";
     }
 
     if ($request->{'action'} == "bgpbeat") {
 	if (-e $config->{'exabgp'}->{'exabgp.in'}) {
-	    $response = "Success";
+	    $response = "Success\n";
 	} 
     }
 
+    $logger->debug("Sending to client: $response");
+    
     print $cli_socket $response;
 }
  

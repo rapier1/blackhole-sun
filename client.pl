@@ -686,6 +686,7 @@ sub blackHole {
 	return $status;
     }
     
+    print "Status is $status\n";
     # for other requests we get a success status
     if ( $status eq "Success" ) {
 	return 1;
