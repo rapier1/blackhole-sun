@@ -154,28 +154,25 @@ function sendToProcessingEngine ($request) {
     if (!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
-        print "I cowardly refused to create a socket: [$errorcode], $errormsg\n";
-        exit;
+        return "I cowardly refused to create a socket: [$errorcode], $errormsg\n";
     }
     /* connect to the local processing engine (client side interface to exabgp)*/
     if (! socket_connect($sock, EXASERVER_CLIENTSIDE, EXASERVER_CLIENTPORT)) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
-        print "Could not connect to processing engine: [$errorcode], $errormsg\n";
-        exit;
+        return "Could not connect to processing engine: [$errorcode], $errormsg\n";
     }
     /* send the data */
     if (! socket_send($sock, $request, strlen($request), 0)) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
-        print "Could not send data: [$errorcode] $errormsg \n";
-        exit;
+        return "Could not send data: [$errorcode] $errormsg \n";
     }
     /* read the response */
     if (!($buf = socket_read($sock, EXASERVER_CLIENTBUFSIZ, PHP_NORMAL_READ))) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
-        die("Could not receive data: [$errorcode] $errormsg \n");
+        return "Could not receive data: [$errorcode] $errormsg \n";
     }
     return $buf;
 }

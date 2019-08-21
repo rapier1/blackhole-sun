@@ -94,7 +94,8 @@
     <table align="center" width="50%">
 	<tr>
 	    <td><br><br><br>
-            Here we will have text describing BlackHole Sun
+              Blackhole Sun is a new tool from the Pittsburgh Supercomputing Center designed to manage black hole routes on ExaBGP route servers. 
+
 	    </td>
 	</tr>
     </table>

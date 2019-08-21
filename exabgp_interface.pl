@@ -188,7 +188,7 @@ sub processInput {
     use Data::Dumper;
     my $cli_socket = shift; # client socket
     my $client_input = shift;
-    my $response;
+    my $response = "";
     my $request = decode_json($client_input);
 
     #print Dumper($request);
@@ -198,30 +198,31 @@ sub processInput {
 
     $logger->debug("in processInput with route: " . $request->{'route'} . " and action: " . $request->{'action'});
     if ($request->{'action'} eq "add") {
-	$response = &addBHRoute($request->{'route'});
+	print $cli_socket &addBHRoute($request->{'route'});
+	return;
     }
 
     if ($request->{'action'} eq "dump") {
-	$response = &dumpRoutes();
+	print $cli_socket &dumpRoutes();
+	return;
     }
     
     if ($request->{'action'} eq "del") {
-	$response = &withdrawRoutes($request->{'route'});
+	print $cli_socket = &withdrawRoutes($request->{'route'});
+	return;
     }
 
-    if ($request{'action'} == "exabeat") {
-	$response = "Success\n";
+    if ($request->{'action'} == "exabeat") {
+	print $cli_socket "Success";
+	return;
     }
 
     if ($request->{'action'} == "bgpbeat") {
 	if (-e $config->{'exabgp'}->{'exabgp.in'}) {
-	    $response = "Success\n";
+	    print $cli_socket "Success";
+	    return;
 	} 
     }
-
-    $logger->debug("Sending to client: $response");
-    
-    print $cli_socket $response;
 }
  
 sub addBHRoute {

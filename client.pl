@@ -305,9 +305,8 @@ sub validateJson {
     my $text;
 
     #    try {
-    print $jsonstring;
     $text = decode_json($jsonstring);
-
+    
     #    } catch {
     #	return -1
     #    }
@@ -534,7 +533,6 @@ sub sendtoExaBgpInt {
     my $action  = shift;
     
     #delete one blackhole route
-    print "about to open socket to exabgp interface\n";
     my $exa_socket = &openExaSocket;    #create ExaBGP interface socket
     if ( !&authorize($exa_socket) ) {   #authorize this process
 	$logger->error("ExaBGP authorization failed");
@@ -646,7 +644,6 @@ sub DBSocket {
 	. $config->{database}->{host}
         . ";port="
 	. $config->{database}->{port};
-    print $data_source . "\n";
     $dbh = DBI->connect($data_source, $config->{database}->{user},
 			$config->{database}->{password},
 			{'RaiseError' => 0, 'PrintError' => 0})
@@ -671,7 +668,7 @@ sub blackHole {
     $request_struct{'action'} = $action;
     $request_struct{'route'}  = $route;
     my $request = encode_json \%request_struct;
-    
+
     print $srv_socket $request . "\n";
     
     $srv_socket->read( $status, 32768 );    # read to 32k or the end of line
@@ -686,7 +683,6 @@ sub blackHole {
 	return $status;
     }
     
-    print "Status is $status\n";
     # for other requests we get a success status
     if ( $status eq "Success" ) {
 	return 1;

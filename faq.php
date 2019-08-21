@@ -47,6 +47,7 @@
     <script src="bootstrap/dist/js/bootstrap.min.js"></script>
     <!-- modals code -->
     <script src="./trmodals.js"></script>
+    <script src="./heartbeat.js"></script> 
 </head>
 
 <body>
@@ -59,8 +60,12 @@
 		<ul class="nav navbar-nav">
 		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+		    <li><a>Status: </a></li>
+		    <li><a><img id="clibeatdot" src="./reddot.png" height="10" width="10" title="BHS Web Interface Status"></a></li>
+		    <li><a><img id="exabeatdot" src="./reddot.png" height="10" width="10" title="BHS ExaBGP Interface Status"></a></li>
+		    <li><a><img id="bgpbeatdot" src="./reddot.png" height="10" width="10" title="ExaBGP Server Status"></a></li>
 		</ul>
-              		<?php
+              	<?php
 		session_start();
 		if (!empty($_SESSION["username"]))
 		{

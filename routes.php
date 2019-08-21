@@ -76,14 +76,11 @@
 <link href="jquery/tablesorter-master/dist/css/theme.default.min.css"
 	rel="stylesheet">
 <script src="jquery/tablesorter-master/dist/js/jquery.tablesorter.js"></script>
-<script
-	src="jquery/tablesorter-master/dist/js/jquery.tablesorter.widgets.js"></script>
+<script	src="jquery/tablesorter-master/dist/js/jquery.tablesorter.widgets.js"></script>
 <!-- Tablesorter: optional -->
-<link rel="stylesheet"
-	href="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.css">
-<script
-	src="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.js"></script>
-
+<link rel="stylesheet" href="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.css">
+<script	src="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.js"></script>
+<script src="./heartbeat.js"></script>
 
 <?php
 session_start ();
@@ -110,6 +107,20 @@ include ("./route_functions.php");
 			   href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
 		    <li><a id="menu-faq"
 			   href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+		    <li><a>Status: </a></li>
+		    <li><a>
+			<img id="clibeatdot" src="./greendot.png" height="10" width="10" title="BHS Web Interface Status">
+		    </a></li>
+		    <li><a>
+			<img id="exabeatdot" src="./greendot.png" height="10" width="10" title="BHS ExaBGP Interface Status">
+		    </a></li>
+		    <li><a>
+			<img id="bgpbeatdot" src="./greendot.png" height="10" width="10" title="ExaBGP Server Status">
+		    </a></li>
+		    <li><a>
+			<?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name']?>
+		    </a></li>
+
 		</ul>
 		<p class="navbar-right navbar-btn">
 		    <button id="account" onClick="window.location=
@@ -135,7 +146,6 @@ include ("./route_functions.php");
 				onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"
 				type="button" class="btn btn-sm btn-primary">Logout</button>
 		</p>
-		<p class="navbar-text"><?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name']?>
 		</p>
 		
 	    </div>
@@ -161,7 +171,7 @@ include ("./route_functions.php");
 		<form action="<?=$_SERVER['PHP_SELF']?>" method='POST'>
 		    <input type="hidden" name="bh_user_role"
 			   value="<?php echo $_SESSION['user_role']?>">
-		    <input type="hiddeb" name="bh_customer_id"
+		    <input type="hidden" name="bh_customer_id"
 			   value="<?php echo $_SESSION['customer_id']?>"> 
 		    <input type="hidden" name="request" value="pushchanges"> 
 		    <input type="hidden" name="action" value="pushchanges"> 
