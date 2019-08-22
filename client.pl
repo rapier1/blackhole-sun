@@ -224,9 +224,27 @@ sub authorize {
     $authorized = <$socket>;
     chomp $authorized;
 
+    $authorized = decrypt($authorized);
+    
     $logger->debug("authorized = $authorized");
 
     return $authorized;
+}
+
+#we need the server's public key in order to encrypt things
+sub encrypt {
+    my $enclear = shift @_;
+    my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
+    my $ciphertext = $cli_public->encrypt($enclear, 'oaep', 'SHA256', '');
+    return $ciphertext;
+}
+
+#we need our private key in order to decrypt things
+sub decrypt {
+    my $ciphertext = shift @_;
+    my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
+    my $enclear = $srv_private->decrypt($ciphertext, 'oaep', 'SHA256', '');
+    return $enclear;
 }
 
 #open a connection to the server

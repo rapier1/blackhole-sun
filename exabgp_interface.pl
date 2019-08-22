@@ -120,43 +120,40 @@ sub authorize {
     # get the client socket
     my $socket = shift;
     
-    # the default is to fail so explicitly set the return value
-    my $authorized = -1;
-
     # we generate a key and send it to them.
     # they respond with their key and the shared secret
     
     #new dh key
     my $pk = Crypt::PK::DH->new();
     $pk->generate_key(128);
+    
     # you need to create a new dhkey struct based on the exported pub/priv key
     # the ->new requires a deref (the \$) in order to take the key from a buffer
     my $dhprivate_srv = Crypt::PK::DH->new(\$pk->export_key('private'));
-
-    # don't create this one yet as we need to send the raw key and not a struct. 
-    my $dhpublic_srv = $pk->export_key('public');
+    my $dhpublic_srv = Crypt::PK::DH->new(\$pk->export_key('public'));
+    
+    #create a text representation of the public key we just generated
+    my $dhpublic_srv_txt = unpack (qq{H*}, $pk->export_key('public'));
 
     #load the server's private RSA key
     my $rsaprivate = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
 
     #compute the signature of the private key
-    my $sig_srv = $rsaprivate->sign_message($dhpublic_srv);
+    my $sig_srv = $rsaprivate->sign_message($dhpublic_srv_txt);
 
     #convert the signature in to a text string
     $sig_srv = unpack (qq{H*}, $sig_srv);
 
-    #convert the public dh key to text
-    $dhpublic_srv = unpack (qq{H*}, $dhpublic_srv);
-    
     #send server sig to client
     print $socket $sig_srv . "\n";
     #send server public dh key to client
-    print $socket $dhpublic_srv . "\n";
+    print $socket $dhpublic_srv_txt . "\n";
 
     # now we get the response from the client
     # they are all text strings so they need to be repacked into binary
     my $keydata = <$socket>;
     chomp $keydata;
+
     (my $clientsig, my $dhpublic_cli, my $clientsecret) = split (":", $keydata);
     
     $clientsig = pack (qq{H*}, $clientsig);
@@ -175,13 +172,29 @@ sub authorize {
     my $srvsecret = dh_shared_secret($dhprivate_srv, $dhpublic_cli);
     $logger->debug("Checking Secrets");
     if ($srvsecret eq $clientsecret) {
-	$authorized = 1;
-	print $socket "Authorized\n";
+	print $socket encrypt("Authorized\n"); # let the client know they are good to go
+	$logger->info("Client authorized");
+	return 1; 
     }
+    # the client failed to authorize
+    $logger->info("Client failed authorization");
+    return -1;
+}
 
-    $logger->info("Client authorized");
-    
-    return $authorized;
+#we need the client's public key in order to encrypt things
+sub encrypt {
+    my $enclear = shift @_;
+    my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'});
+    my $ciphertext = $cli_public->encrypt($enclear, 'oaep', 'SHA256', '');
+    return $ciphertext;
+}
+
+#we need our private key in order to decrupt things
+sub decrypt {
+    my $ciphertext = shift @_;
+    my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
+    my $enclear = $srv_private->decrypt($ciphertext, 'oaep', 'SHA256', '');
+    return $enclear;
 }
 
 sub processInput {
