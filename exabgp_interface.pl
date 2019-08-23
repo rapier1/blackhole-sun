@@ -188,9 +188,11 @@ sub authorize {
 # output : char string
 sub encrypt {
     my $enclear = shift @_;
+    $logger->debug("Encrypt: Received $enclear\n");
     my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'});
     my $ciphertext = $cli_public->encrypt($enclear);
     $ciphertext = unpack (qq{H*}, $ciphertext);
+    $logger->debug("Encrypt: Sending $ciphertext\n");
     return $ciphertext;
 }
 
@@ -201,9 +203,11 @@ sub encrypt {
 # output: char string
 sub decrypt {
     my $ciphertext = shift @_;
+    $logger->debug("Decrypt: Received $ciphertext\n");
     $ciphertext = pack (qq{H*}, $ciphertext);
     my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
     my $enclear = $srv_private->decrypt($ciphertext);
+    $logger->debug("Decrypt: sending $enclear\n");
     return $enclear;
 }
 

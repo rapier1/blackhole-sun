@@ -234,18 +234,22 @@ sub authorize {
 #we need the server's public key in order to encrypt things
 sub encrypt {
     my $enclear = shift @_;
+    print "encrypt: Received $enclear\n";
     my $srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
     my $ciphertext = $srv_public->encrypt($enclear);
     $ciphertext = unpack (qq{H*}, $ciphertext);
+    print "encrypt: Sending $ciphertext\n";
     return $ciphertext;
 }
 
 #we need our private key in order to decrypt things
 sub decrypt {
     my $ciphertext = shift @_;
+    print "decrypt: Received $ciphertext\n";
     $ciphertext = pack(qq{H*}, $ciphertext);
     my $cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
     my $enclear = $cli_private->decrypt($ciphertext);
+    print "decrypt: Sending $enclear\n";
     return $enclear;
 }
 
