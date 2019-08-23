@@ -225,7 +225,7 @@ sub authorize {
     chomp $authorized;
 
     $authorized = decrypt($authorized);
-    
+
     $logger->debug("authorized = $authorized");
 
     return $authorized;
@@ -234,16 +234,18 @@ sub authorize {
 #we need the server's public key in order to encrypt things
 sub encrypt {
     my $enclear = shift @_;
-    my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
-    my $ciphertext = $cli_public->encrypt($enclear, 'oaep', 'SHA256', '');
+    my $srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
+    my $ciphertext = $srv_public->encrypt($enclear);
+    $ciphertext = unpack (qq{H*}, $ciphertext);
     return $ciphertext;
 }
 
 #we need our private key in order to decrypt things
 sub decrypt {
     my $ciphertext = shift @_;
-    my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
-    my $enclear = $srv_private->decrypt($ciphertext, 'oaep', 'SHA256', '');
+    $ciphertext = pack(qq{H*}, $ciphertext);
+    my $cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
+    my $enclear = $cli_private->decrypt($ciphertext);
     return $enclear;
 }
 
@@ -252,7 +254,6 @@ sub openExaSocket {
     $logger->debug(
 	"About to open ExaSocket: $config->{'interface'}->{'host'}, $config->{'interface'}->{'port'}"
 	);
-    
     my $sock = IO::Socket::INET->new(
 	PeerAddr => $config->{'interface'}->{'host'},
 	PeerPort => $config->{'interface'}->{'port'},
@@ -687,9 +688,12 @@ sub blackHole {
     $request_struct{'route'}  = $route;
     my $request = encode_json \%request_struct;
 
-    print $srv_socket $request . "\n";
+    print $srv_socket encrypt($request) . "\n";
     
     $srv_socket->read( $status, 32768 );    # read to 32k or the end of line
+
+    $status = decrypt($status);
+    chomp $status;
     
     $logger->debug("status in function blackHole is $status");
     

@@ -119,41 +119,41 @@ sub validateConfig {
 sub authorize {
     # get the client socket
     my $socket = shift;
-    
+
     # we generate a key and send it to them.
     # they respond with their key and the shared secret
     
     #new dh key
     my $pk = Crypt::PK::DH->new();
     $pk->generate_key(128);
-    
     # you need to create a new dhkey struct based on the exported pub/priv key
     # the ->new requires a deref (the \$) in order to take the key from a buffer
     my $dhprivate_srv = Crypt::PK::DH->new(\$pk->export_key('private'));
-    my $dhpublic_srv = Crypt::PK::DH->new(\$pk->export_key('public'));
-    
-    #create a text representation of the public key we just generated
-    my $dhpublic_srv_txt = unpack (qq{H*}, $pk->export_key('public'));
+
+    # don't create this one yet as we need to send the raw key and not a struct. 
+    my $dhpublic_srv = $pk->export_key('public');
 
     #load the server's private RSA key
     my $rsaprivate = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
 
     #compute the signature of the private key
-    my $sig_srv = $rsaprivate->sign_message($dhpublic_srv_txt);
+    my $sig_srv = $rsaprivate->sign_message($dhpublic_srv);
 
     #convert the signature in to a text string
     $sig_srv = unpack (qq{H*}, $sig_srv);
 
+    #convert the public dh key to text
+    $dhpublic_srv = unpack (qq{H*}, $dhpublic_srv);
+    
     #send server sig to client
     print $socket $sig_srv . "\n";
     #send server public dh key to client
-    print $socket $dhpublic_srv_txt . "\n";
+    print $socket $dhpublic_srv . "\n";
 
     # now we get the response from the client
     # they are all text strings so they need to be repacked into binary
     my $keydata = <$socket>;
     chomp $keydata;
-
     (my $clientsig, my $dhpublic_cli, my $clientsecret) = split (":", $keydata);
     
     $clientsig = pack (qq{H*}, $clientsig);
@@ -172,28 +172,38 @@ sub authorize {
     my $srvsecret = dh_shared_secret($dhprivate_srv, $dhpublic_cli);
     $logger->debug("Checking Secrets");
     if ($srvsecret eq $clientsecret) {
-	print $socket encrypt("Authorized\n"); # let the client know they are good to go
 	$logger->info("Client authorized");
-	return 1; 
+	print $socket encrypt("Authorized") . "\n";
+	return 1;
     }
-    # the client failed to authorize
+
     $logger->info("Client failed authorization");
     return -1;
 }
 
-#we need the client's public key in order to encrypt things
+# we need the client's public key in order to encrypt things
+# because of the way we set up the server we need to send this as a single
+# string of text. As such, we have to unpack it before we return
+# input : char string
+# output : char string
 sub encrypt {
     my $enclear = shift @_;
     my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'});
-    my $ciphertext = $cli_public->encrypt($enclear, 'oaep', 'SHA256', '');
+    my $ciphertext = $cli_public->encrypt($enclear);
+    $ciphertext = unpack (qq{H*}, $ciphertext);
     return $ciphertext;
 }
 
-#we need our private key in order to decrupt things
+# we need our private key in order to decrypt things
+# because we are unpacking the binary crypto stream into a char string
+# we need to pack it back into a binary before we can decrypt it
+# input : char string
+# output: char string
 sub decrypt {
     my $ciphertext = shift @_;
+    $ciphertext = pack (qq{H*}, $ciphertext);
     my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
-    my $enclear = $srv_private->decrypt($ciphertext, 'oaep', 'SHA256', '');
+    my $enclear = $srv_private->decrypt($ciphertext);
     return $enclear;
 }
 
@@ -204,35 +214,30 @@ sub processInput {
     my $response = "";
     my $request = decode_json($client_input);
 
-    #print Dumper($request);
-    
-    #request{action}
-    #request{route}
-
     $logger->debug("in processInput with route: " . $request->{'route'} . " and action: " . $request->{'action'});
     if ($request->{'action'} eq "add") {
-	print $cli_socket &addBHRoute($request->{'route'});
+	print $cli_socket encrypt(&addBHRoute($request->{'route'}));
 	return;
     }
 
     if ($request->{'action'} eq "dump") {
-	print $cli_socket &dumpRoutes();
+	print $cli_socket encrypt(&dumpRoutes());
 	return;
     }
     
     if ($request->{'action'} eq "del") {
-	print $cli_socket = &withdrawRoutes($request->{'route'});
+	print $cli_socket = encrypt(&withdrawRoutes($request->{'route'}));
 	return;
     }
 
     if ($request->{'action'} == "exabeat") {
-	print $cli_socket "Success";
+	print $cli_socket encrypt("Success");
 	return;
     }
 
     if ($request->{'action'} == "bgpbeat") {
 	if (-e $config->{'exabgp'}->{'exabgp.in'}) {
-	    print $cli_socket "Success";
+	    print $cli_socket encrypt("Success");
 	    return;
 	} 
     }
@@ -313,6 +318,7 @@ sub startServer {
 	    $child->write_timeout(1);
 	    if ($pid == 0) {
 		my $response = <$child>;
+		#pre auth do not decrypt
 		if ($response =~ /auth/i) {
 		    $authorized = &authorize($child);
 		} else {
@@ -324,9 +330,11 @@ sub startServer {
 		if ($authorized == 1) {
 		    while (defined (my $buf = <$child>)) {
 			# the input is a json object
+			$buf = decrypt($buf);
 			chomp $buf;
+			
 			if ($buf =~ /quit/) {
-			    print $child "Quitting\n";
+			    print $child encrypt("Quitting"). "\n";
 			    close ($child);
 			}
 			$logger->debug("Sending $buf to processInput");
@@ -334,6 +342,7 @@ sub startServer {
 		    }
 		    exit(0); # Child process exits when it is done.
 		} else {
+		    # do not encrypt this as it is preauth failure. 
 		    print $child "Authorization failure\n";
 		    $logger->warn("Authorization failure");
 		    close ($child);

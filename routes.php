@@ -80,7 +80,7 @@
 <!-- Tablesorter: optional -->
 <link rel="stylesheet" href="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.css">
 <script	src="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.js"></script>
-<script src="./heartbeat.js"></script>
+<!--  <script src="./heartbeat.js"></script>-->
 
 <?php
 session_start ();
