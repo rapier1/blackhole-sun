@@ -48,6 +48,8 @@ use IO::Socket::Timeout;
 use CryptX;
 use Crypt::PK::RSA;
 use Crypt::PK::DH qw(dh_shared_secret);
+use Crypt::Mode::CTR;
+use Crypt::Random qw(makerandom);
 use Try::Tiny;
 use Config::Tiny;
 use Getopt::Std;
@@ -188,9 +190,30 @@ sub authorize {
 # output : char string
 sub encrypt {
     my $enclear = shift @_;
+    chomp $enclear;
     $logger->debug("Encrypt: Received $enclear\n");
+    # create a key to use with the AES encryption
+    my $key = makerandom(Size => 128, Strength => 0); 
+
+    #create an initialization vector
+    my $iv = makerandom(Size => 128, Strength => 0);  
+
+    #load the client's public key
     my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'});
-    my $ciphertext = $cli_public->encrypt($enclear);
+
+    #encrypt the AES key with the public key
+    my $cryptkey = $cli_public->encrypt($key);
+
+    #instantiate AES 
+    my $AES = Crypt::Mode::CTR->new('AES');
+
+    #encrypt the data with the unencrypted AES key and the iv
+    my $ciphertext = $AES->encrypt($enclear, $key, $iv);
+
+    #prepend the data with the iv and the encrypted aes key 
+    $ciphertext = $iv . $cryptkey . $ciphertext;
+
+    #convert it into a char representation
     $ciphertext = unpack (qq{H*}, $ciphertext);
     $logger->debug("Encrypt: Sending $ciphertext\n");
     return $ciphertext;
@@ -204,10 +227,32 @@ sub encrypt {
 sub decrypt {
     my $ciphertext = shift @_;
     $logger->debug("Decrypt: Received $ciphertext\n");
+
+    #pack the incoming char representation back into binary
     $ciphertext = pack (qq{H*}, $ciphertext);
+
+    #we need to grab the 1st 16 bytes as the iv
+    my $iv = substr($ciphertext, 0, 16);
+        
+    #we need to grab the next 16 bytes as the encrypted key
+    my $cryptkey = substr($ciphertext, 16, 16);
+
+    # now put the rest of the data back into ciphertext
+    $ciphertext = substr($ciphertext, 32);
+    
+    #load the servers private RSA key
     my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
-    my $enclear = $srv_private->decrypt($ciphertext);
-    $logger->debug("Decrypt: sending $enclear\n");
+
+    #decrypt the AES key
+    my $key = $srv_private->decrypt($cryptkey);
+
+    #instantiate AES 
+    my $AES = Crypt::Mode::CTR->new('AES');
+
+    #encrypt the data with the unencrypted AES key and the iv
+    my $enclear = $AES->decrypt($ciphertext, $key, $iv);
+
+    $logger->debug("Decrypt: Sending $enclear\n");
     return $enclear;
 }
 

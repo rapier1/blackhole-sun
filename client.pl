@@ -34,6 +34,8 @@ use IO::Socket::Timeout;
 use CryptX;
 use Crypt::PK::RSA;
 use Crypt::PK::DH qw(dh_shared_secret);
+use Crypt::Mode::CTR;
+use Crypt::Random qw(makerandom);
 use Try::Tiny;
 use Config::Tiny;
 use Getopt::Std;
@@ -231,27 +233,102 @@ sub authorize {
     return $authorized;
 }
 
-#we need the server's public key in order to encrypt things
+# we need the server's public key in order to encrypt things
+# because of the way we set up the server we need to send this as a single
+# string of text. As such, we have to unpack it before we return
+# input : char string
+# output : char string
 sub encrypt {
     my $enclear = shift @_;
-    print "encrypt: Received $enclear\n";
+    chomp $enclear;
+
+    $logger->debug("Encrypt: Received $enclear\n");
+    # create a key to use with the AES encryption
+    my $key = makerandom(Size => 128, Strength => 0); 
+
+    #create an initialization vector
+    my $iv = makerandom(Size => 128, Strength => 0);  
+
+    #load the server's public key
     my $srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
-    my $ciphertext = $srv_public->encrypt($enclear);
+
+    #encrypt the AES key with the public key
+    my $cryptkey = $srv_public->encrypt($key);
+
+    #instantiate AES 
+    my $AES = Crypt::Mode::CTR->new('AES');
+
+    #encrypt the data with the unencrypted AES key and the iv
+    my $ciphertext = $AES->encrypt($enclear, $key, $iv);
+
+    #prepend the data with the iv and the encrypted aes key 
+    $ciphertext = $iv . $cryptkey . $ciphertext;
+
+    #convert it into a char representation
     $ciphertext = unpack (qq{H*}, $ciphertext);
-    print "encrypt: Sending $ciphertext\n";
+    $logger->debug("Encrypt: Sending $ciphertext\n");
     return $ciphertext;
 }
 
-#we need our private key in order to decrypt things
+# we need our private key in order to decrypt things
+# because we are unpacking the binary crypto stream into a char string
+# we need to pack it back into a binary before we can decrypt it
+# input : char string
+# output: char string
 sub decrypt {
     my $ciphertext = shift @_;
-    print "decrypt: Received $ciphertext\n";
-    $ciphertext = pack(qq{H*}, $ciphertext);
+    $logger->debug("Decrypt: Received $ciphertext\n");
+
+    #pack the incoming char representation back into binary
+    $ciphertext = pack (qq{H*}, $ciphertext);
+
+    #we need to grab the 1st 16 bytes as the iv
+    my $iv = substr($ciphertext, 0, 16);
+        
+    #we need to grab the next 16 bytes as the encrypted key
+    my $cryptkey = substr($ciphertext, 16, 16);
+
+    # now put the rest of the data back into ciphertext
+    $ciphertext = substr($ciphertext, 32);
+    
+    #load the client's private RSA key
     my $cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
-    my $enclear = $cli_private->decrypt($ciphertext);
-    print "decrypt: Sending $enclear\n";
+
+    #decrypt the AES key
+    my $key = $cli_private->decrypt($cryptkey);
+
+    #instantiate AES 
+    my $AES = Crypt::Mode::CTR->new('AES');
+
+    #encrypt the data with the unencrypted AES key and the iv
+    my $enclear = $AES->decrypt($ciphertext, $key, $iv);
+
+    $logger->debug("Decrypt: Sending $enclear\n");
     return $enclear;
 }
+
+
+#we need the server's public key in order to encrypt things
+#sub encrypt {
+#    my $enclear = shift @_;
+#    print "encrypt: Received $enclear\n";
+#    my $srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
+#    my $ciphertext = $srv_public->encrypt($enclear);
+#    $ciphertext = unpack (qq{H*}, $ciphertext);
+#    print "encrypt: Sending $ciphertext\n";
+#    return $ciphertext;
+#}
+
+#we need our private key in order to decrypt things
+#sub decrypt {
+#    my $ciphertext = shift @_;
+#    print "decrypt: Received $ciphertext\n";
+#    $ciphertext = pack(qq{H*}, $ciphertext);
+#    my $cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
+#    my $enclear = $cli_private->decrypt($ciphertext);
+#    print "decrypt: Sending $enclear\n";
+#    return $enclear;
+#}
 
 #open a connection to the server
 sub openExaSocket {
@@ -692,7 +769,7 @@ sub blackHole {
     $request_struct{'route'}  = $route;
     my $request = encode_json \%request_struct;
 
-    print $srv_socket encrypt($request) . "\n";
+    print $srv_socket encrypt($request);
     
     $srv_socket->read( $status, 32768 );    # read to 32k or the end of line
 
