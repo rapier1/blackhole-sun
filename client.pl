@@ -174,8 +174,7 @@ sub authorize {
     $dhpublic_srv = pack( qq{H*}, $dhpublic_srv );
 
     #verify the signature
-    my $rsapub =
-	Crypt::PK::RSA->new( $config->{'keys'}->{'server_public_rsa'} );
+    my $rsapub = Crypt::PK::RSA->new( $config->{'keys'}->{'server_public_rsa'} );
     if ( !$rsapub->verify_message( $sig_srv, $dhpublic_srv ) ) {
 	print STDERR
 	    "Could not verify the RSA signature for the server. Exiting.\n";
@@ -192,8 +191,7 @@ sub authorize {
     my $dhpublic_cli  = $pk->export_key('public');
 
     #load the client's private RSA key
-    my $rsaprivate =
-	Crypt::PK::RSA->new( $config->{'keys'}->{'client_private_rsa'} );
+    my $rsaprivate = Crypt::PK::RSA->new( $config->{'keys'}->{'client_private_rsa'} );
 
     #compute the signature of the private key
     my $sig_client = $rsaprivate->sign_message($dhpublic_cli);
@@ -223,14 +221,43 @@ sub authorize {
 
     #wait until we get an auth response from the server
     $logger->debug("ST Waiting on auth");
+
     $authorized = <$socket>;
     chomp $authorized;
 
     $authorized = decrypt($authorized);
-
+        
     $logger->debug("authorized = $authorized");
 
     return $authorized;
+}
+
+
+#for various dumb reasons I'm goint to use makrandom to generate
+#a sting of characers (the key and IV in the AES encrypt/decrypt needs to be
+#a string and not a number and quoting the variable isn't making it work better
+#so we are doing this. Recursively generate a string of a desired length using
+#printable ASCII characters.
+#input length - int - length of string
+#      string - char - generated string
+#         note : when you initially call genRandomString 'string' should
+#                be null
+#output char (string of desired length)
+sub genRandomString {
+    my $length = shift @_;
+    my $string = shift @_;
+    my $num = makerandom(Size=>6, Strength =>0);
+    
+    if ($num < 33 or $num == 127) {
+	#anything lower than 33 is nonprintable 127 is del
+        &genRandomString($length, $string);
+    }
+    $string .= chr($num);
+    if (length($string) == $length) {
+        return $string;
+    } else {
+        &genRandomString($length, $string);
+    }
 }
 
 # we need the server's public key in order to encrypt things
@@ -241,32 +268,43 @@ sub authorize {
 sub encrypt {
     my $enclear = shift @_;
     chomp $enclear;
-
-    $logger->debug("Encrypt: Received $enclear\n");
-    # create a key to use with the AES encryption
-    my $key = makerandom(Size => 128, Strength => 0); 
-
-    #create an initialization vector
-    my $iv = makerandom(Size => 128, Strength => 0);  
-
+    my $srv_public;
+    my $cryptkey;
+    my $ciphertext;
+    
+    # create a key to use with the AES encryption 16 bytes
+    my $key = genRandomString(16); 
+    
+    #create an initialization vector 16 bytes
+    my $iv = genRandomString(16);
+    
     #load the server's public key
-    my $srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
-
+    eval {$srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'})};
+    if ($@) {
+	$logger->error("Error loading server's public key: $@");
+	return -1;
+    }
+    
     #encrypt the AES key with the public key
-    my $cryptkey = $srv_public->encrypt($key);
+    eval {$cryptkey = unpack(qq{H*}, $srv_public->encrypt($key))};
+    if ($@) {
+	$logger->error("Error loading server's public key: $@");
+	return -1;
+    }
 
     #instantiate AES 
     my $AES = Crypt::Mode::CTR->new('AES');
 
     #encrypt the data with the unencrypted AES key and the iv
-    my $ciphertext = $AES->encrypt($enclear, $key, $iv);
+    eval {$ciphertext = unpack(qq{H*}, $AES->encrypt($enclear, $key, $iv))};
+    if ($@) {
+	$logger->error("Error loading server's public key: $@");
+	return -1;
+    }
 
     #prepend the data with the iv and the encrypted aes key 
     $ciphertext = $iv . $cryptkey . $ciphertext;
 
-    #convert it into a char representation
-    $ciphertext = unpack (qq{H*}, $ciphertext);
-    $logger->debug("Encrypt: Sending $ciphertext\n");
     return $ciphertext;
 }
 
@@ -277,58 +315,54 @@ sub encrypt {
 # output: char string
 sub decrypt {
     my $ciphertext = shift @_;
+    my $enclear;
+    my $key;
+    my $cli_private;
     $logger->debug("Decrypt: Received $ciphertext\n");
-
-    #pack the incoming char representation back into binary
-    $ciphertext = pack (qq{H*}, $ciphertext);
-
+    
     #we need to grab the 1st 16 bytes as the iv
     my $iv = substr($ciphertext, 0, 16);
-        
-    #we need to grab the next 16 bytes as the encrypted key
-    my $cryptkey = substr($ciphertext, 16, 16);
+    
+    # we need to grab the next 512 bytes as the encrypted key
+    # Even though the initial key is 16 bytes it's RSA encrypted so we
+    # end up with 512 bytes
+    my $cryptkey = substr($ciphertext, 16, 512);
 
+    # pack it back into a binary representation
+    $cryptkey = pack(qq{H*}, $cryptkey);
+    
     # now put the rest of the data back into ciphertext
-    $ciphertext = substr($ciphertext, 32);
+    $ciphertext = substr($ciphertext, 528);
+    
+    # pack it back into a binary representation
+    $ciphertext = pack(qq{H*}, $ciphertext); 
     
     #load the client's private RSA key
-    my $cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
+    eval {$cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'})};
+    if ($@) {
+	$logger->error("Error loading client key: $@");
+	return -999;
+    }
 
     #decrypt the AES key
-    my $key = $cli_private->decrypt($cryptkey);
-
+    eval {$key = $cli_private->decrypt($cryptkey)};
+    if ($@) {
+	$logger->error("Error decrypting key: $@");
+	return -999;
+    }
+    
     #instantiate AES 
     my $AES = Crypt::Mode::CTR->new('AES');
 
     #encrypt the data with the unencrypted AES key and the iv
-    my $enclear = $AES->decrypt($ciphertext, $key, $iv);
-
-    $logger->debug("Decrypt: Sending $enclear\n");
+    eval {$enclear = $AES->decrypt($ciphertext, $key, $iv+1)};
+    if ($@) {
+	$logger->error("Error decrypting message: $@");
+	return -999;
+    }
     return $enclear;
 }
 
-
-#we need the server's public key in order to encrypt things
-#sub encrypt {
-#    my $enclear = shift @_;
-#    print "encrypt: Received $enclear\n";
-#    my $srv_public = Crypt::PK::RSA->new($config->{'keys'}->{'server_public_rsa'});
-#    my $ciphertext = $srv_public->encrypt($enclear);
-#    $ciphertext = unpack (qq{H*}, $ciphertext);
-#    print "encrypt: Sending $ciphertext\n";
-#    return $ciphertext;
-#}
-
-#we need our private key in order to decrypt things
-#sub decrypt {
-#    my $ciphertext = shift @_;
-#    print "decrypt: Received $ciphertext\n";
-#    $ciphertext = pack(qq{H*}, $ciphertext);
-#    my $cli_private = Crypt::PK::RSA->new($config->{'keys'}->{'client_private_rsa'});
-#    my $enclear = $cli_private->decrypt($ciphertext);
-#    print "decrypt: Sending $enclear\n";
-#    return $enclear;
-#}
 
 #open a connection to the server
 sub openExaSocket {
@@ -490,6 +524,12 @@ sub processInboundRequests {
 	    if ( $status == -1 ) {
 		return "Error interfacing with ExaBGP";
 	    }
+	    if ($status == -2 ) {
+		return "Problems encountered with encrypting the request";
+	    }
+	    if ($status == -3) {
+		return "Problems encountered with decrypting the response";
+	    }
 	    return 1;
 	}
 	case /listexisting/i {
@@ -561,9 +601,19 @@ sub processInboundRequests {
 	    my $status = &pushChanges( $child, $json );
 	    return $status;
 	}
+	#am I even using this? 
 	case /deleteselection/i {
 	    #delete one blackhole route
 	    my $status = sendtoExaBgpInt( $child, $json, "del" );
+	    if ( $status == -1 ) {
+		return "Error interfacing with ExaBGP";
+	    }
+	    if ($status == -2 ) {
+		return "Problems encountered with encrypting the request";
+	    }
+	    if ($status == -3) {
+		return "Problems encountered with decrypting the response";
+	    }
 	    
 	    # set route to inactive route to the database
 	    my $db_stat = &inactivateRouteInDB($json);
@@ -573,13 +623,6 @@ sub processInboundRequests {
 	    my $status = &routeModNotification($json);
 	    return $status;
 	}		    
-	case /confirmbhdata/i {	    
-	    #compare bh data from db to exabgp
-	    # get a dump from the exabgp server
-	    # get a dump from the db
-	    # ?
-	    # profit
-	}
 	# return a list of extant routes as reported by ExaBGP
 	case /getexaroutes/i {
 	    my $status = &listExaRoutes($child, $json);
@@ -599,6 +642,7 @@ sub listExaRoutes {
     # we need to grab the list of routes in the exabgp server
 
     my $results = sendtoExaBgpInt( $child, "", "dump" );
+    
     my %exablocks;           #blocks from the server
     my %dbblocks;            # blocks from the database
     my %protected;           # blocks from the protected config information
@@ -754,6 +798,17 @@ sub DBSocket {
 
 # create, delete, or modify black holes
 # the socket in question is the exabgp interface socket
+# input:
+#       srv_socket = socket to exabgp interface
+#       route      = route to blackhole (may be null)
+#       action     = What they are looking to do
+# output:
+#       char = could be a list of routes or a success label
+#       -1   = unknown failure from exabgp
+#       -2   = local decrypt failure
+#       -3   = local encrypt failure
+#       -4   = remote encrypt failure
+#       -5   = remote decrypt failure
 sub blackHole {
     my $srv_socket = shift;    # socket to the exabgp_interface
     my $route      = shift;    # the blackhole route
@@ -769,12 +824,41 @@ sub blackHole {
     $request_struct{'route'}  = $route;
     my $request = encode_json \%request_struct;
 
-    print $srv_socket encrypt($request);
+    #encrypt the request and make sure that we did not run into problems
+    $request = encrypt($request);
+    if ($request == -1) {
+	return -3;
+    }
     
+    # everything worked so send the request
+    print $srv_socket $request;
+    
+    # wait for a result
     $srv_socket->read( $status, 32768 );    # read to 32k or the end of line
 
+    # we can get multiple responses
+    # -2 = encrypt failure on remote
+    # -3 = decrypt failure on remote
+    # char string = encrypted message (what we want to get)
+    # check to see if we got a bare value back. This indicates a crypto failure on the
+    # remote end
+
+    if ($status == -2) {
+	return -4;
+    }
+    if ($status == -3) {
+	return -5;
+    }
+    
+    #decrypt whatever we received
     $status = decrypt($status);
     chomp $status;
+
+    # -999 indicates a local crypto failure while decrypting the response
+    # why -999? Because we can get other negative values as valid responses
+    if ($status == -999) {
+	return -2;
+    }
     
     $logger->debug("status in function blackHole is $status");
     

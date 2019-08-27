@@ -172,15 +172,42 @@ sub authorize {
     $dhpublic_cli = Crypt::PK::DH->new(\$dhpublic_cli);
     #compute shared secret
     my $srvsecret = dh_shared_secret($dhprivate_srv, $dhpublic_cli);
-    $logger->debug("Checking Secrets");
     if ($srvsecret eq $clientsecret) {
 	$logger->info("Client authorized");
-	print $socket encrypt("Authorized") . "\n";
+	my $cryptdata = encrypt("Authorized");
+	print $socket "$cryptdata\n";
 	return 1;
     }
 
     $logger->info("Client failed authorization");
     return -1;
+}
+
+#for various dumb reasons I'm goint to use makrandom to generate
+#a sting of characers (the key and IV in the AES encrypt/decrypt needs to be
+#a string and not a number and quoting the variable isn't making it work better
+#so we are doing this. Recursively generate a string of a desired length using
+#printable ASCII characters.
+#input length - int - length of string
+#      string - char - generated string
+#         note : when you initially call genRandomString 'string' should
+#                be null
+#output char (string of desired length)
+sub genRandomString {
+    my $length = shift @_;
+    my $string = shift @_;
+    my $num = makerandom(Size=>6, Strength =>0);
+    
+    if ($num < 33 or $num == 127) {
+	#anything lower than 33 is nonprintable 127 is del
+        &genRandomString($length, $string);
+    }
+    $string .= chr($num);
+    if (length($string) == $length) {
+        return $string;
+    } else {
+        &genRandomString($length, $string);
+    }
 }
 
 # we need the client's public key in order to encrypt things
@@ -191,31 +218,43 @@ sub authorize {
 sub encrypt {
     my $enclear = shift @_;
     chomp $enclear;
-    $logger->debug("Encrypt: Received $enclear\n");
-    # create a key to use with the AES encryption
-    my $key = makerandom(Size => 128, Strength => 0); 
 
+    my $cli_public;
+    my $cryptkey;
+    my $ciphertext;
+    
+    my $key = genRandomString(16);
+    
     #create an initialization vector
-    my $iv = makerandom(Size => 128, Strength => 0);  
-
+    my $iv = genRandomString(16);
+    
     #load the client's public key
-    my $cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'});
-
+    eval {$cli_public = Crypt::PK::RSA->new($config->{'keys'}->{'client_public_rsa'})};
+    if ($@) {
+	$logger->error("Error loading client public key: $@");
+	return -1;
+    }
+    
     #encrypt the AES key with the public key
-    my $cryptkey = $cli_public->encrypt($key);
-
+    eval {$cryptkey = unpack(qq{H*}, $cli_public->encrypt($key))};
+    if ($@) {
+	$logger->error("Error encrypting AES key: $@");
+	return -1;
+    }
+    
     #instantiate AES 
     my $AES = Crypt::Mode::CTR->new('AES');
-
     #encrypt the data with the unencrypted AES key and the iv
-    my $ciphertext = $AES->encrypt($enclear, $key, $iv);
 
+    eval {$ciphertext = unpack(qq{H*}, $AES->encrypt($enclear, $key, $iv))};
+    if ($@) {
+	$logger->error("Error in AES encryption of message: $@");
+	return -1;
+    }
+    
     #prepend the data with the iv and the encrypted aes key 
     $ciphertext = $iv . $cryptkey . $ciphertext;
 
-    #convert it into a char representation
-    $ciphertext = unpack (qq{H*}, $ciphertext);
-    $logger->debug("Encrypt: Sending $ciphertext\n");
     return $ciphertext;
 }
 
@@ -226,33 +265,47 @@ sub encrypt {
 # output: char string
 sub decrypt {
     my $ciphertext = shift @_;
-    $logger->debug("Decrypt: Received $ciphertext\n");
-
-    #pack the incoming char representation back into binary
-    $ciphertext = pack (qq{H*}, $ciphertext);
-
+    my $srv_private;
+    my $key;
+    my $enclear;
+    
     #we need to grab the 1st 16 bytes as the iv
     my $iv = substr($ciphertext, 0, 16);
-        
-    #we need to grab the next 16 bytes as the encrypted key
-    my $cryptkey = substr($ciphertext, 16, 16);
 
+    #we need to grab the next 512 bytes as the encrypted key
+    my $cryptkey = substr($ciphertext, 16, 512);
+
+    $cryptkey = pack(qq{H*}, $cryptkey);
+   
     # now put the rest of the data back into ciphertext
-    $ciphertext = substr($ciphertext, 32);
+    $ciphertext = substr($ciphertext, 528);
+
+    $ciphertext = pack(qq{H*}, $ciphertext); 
     
     #load the servers private RSA key
-    my $srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'});
+    eval {$srv_private = Crypt::PK::RSA->new($config->{'keys'}->{'server_private_rsa'})};
+    if ($@) {
+	$logger->error("Error loading private key: $@");
+	return -1;
+    }    
 
     #decrypt the AES key
-    my $key = $srv_private->decrypt($cryptkey);
-
+    eval {$key = $srv_private->decrypt($cryptkey)};
+    if ($@) {
+	$logger->error("Error decrypting AES key: $@");
+	return -1;
+    }
+    
     #instantiate AES 
     my $AES = Crypt::Mode::CTR->new('AES');
 
     #encrypt the data with the unencrypted AES key and the iv
-    my $enclear = $AES->decrypt($ciphertext, $key, $iv);
+    eval {$enclear = $AES->decrypt($ciphertext, $key, $iv)};
+    if ($@) {
+	$logger->error("Error in AES decryption of message: $@");
+	return -1;
+    }
 
-    $logger->debug("Decrypt: Sending $enclear\n");
     return $enclear;
 }
 
@@ -260,36 +313,59 @@ sub processInput {
     use Data::Dumper;
     my $cli_socket = shift; # client socket
     my $client_input = shift;
+    # $client_input may be -1 if the decryption failed
+    # if it is then the json_decode will fail and we will
+    # fall through these if statements to the final return
     my $response = "";
     my $request = decode_json($client_input);
 
     $logger->debug("in processInput with route: " . $request->{'route'} . " and action: " . $request->{'action'});
     if ($request->{'action'} eq "add") {
-	print $cli_socket encrypt(&addBHRoute($request->{'route'}));
+	$response = encrypt(&addBHRoute($request->{'route'}));
+	print $cli_socket $response;
 	return;
     }
 
     if ($request->{'action'} eq "dump") {
-	print $cli_socket encrypt(&dumpRoutes());
+	$response = encrypt(&dumproutes());
+	print $cli_socket $response;
 	return;
     }
     
     if ($request->{'action'} eq "del") {
-	print $cli_socket = encrypt(&withdrawRoutes($request->{'route'}));
+	$response = encrypt(&withdrawRoutes($request->{'route'}));
+	print $cli_socket $response;
 	return;
     }
 
     if ($request->{'action'} == "exabeat") {
-	print $cli_socket encrypt("Success");
+	$response = encrypt("Success");
+	print $cli_socket $response;
 	return;
     }
 
     if ($request->{'action'} == "bgpbeat") {
 	if (-e $config->{'exabgp'}->{'exabgp.in'}) {
-	    print $cli_socket encrypt("Success");
+	    $response = encrypt("Success");
+	    print $cli_socket $response;
 	    return;
 	} 
     }
+
+    #There are a few ways we can end up here
+    #1 The json is malformed
+    #2 The action doesn't match anything
+    #3 the decrypt routine crapped out
+    # 1 and 2 are dealt with in the same way
+    # encrypt -2 and send it back out
+    # 3 indicates a problem with encrytption as a whole and
+    # we probably shouldn't try to use it to send a value back
+    if ($client_input == -1) {
+	$response = -3;
+    } else {
+	$response = encrypt("-2");
+    }
+    print $cli_socket $response;
 }
  
 sub addBHRoute {
@@ -380,6 +456,8 @@ sub startServer {
 		    while (defined (my $buf = <$child>)) {
 			# the input is a json object
 			$buf = decrypt($buf);
+			# if encryption fails $buf is -1
+			# pass that to processInput and deal with it there
 			chomp $buf;
 			
 			if ($buf =~ /quit/) {
