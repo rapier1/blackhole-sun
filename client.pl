@@ -245,7 +245,7 @@ sub authorize {
 sub genRandomString {
     my $length = shift @_;
     my $string = shift @_;
-    my $num = makerandom(Size=>6, Strength =>0);
+    my $num = makerandom(Size=>7, Strength =>0); #2^7 = 128
     
     if ($num < 33 or $num == 127) {
 	#anything lower than 33 is nonprintable 127 is del
@@ -825,7 +825,11 @@ sub blackHole {
     # we need to use looks_like_number to differentiate between
     # an encrypted string and a numerical error code.
     # TODO: You should set this up so that all communication between client
-    # and server have an error field, error message field, and payload. 
+    # and server have an error field, error message field, and payload.
+    # On second thought - thats not a good idea as it will leak information
+    # you can specifically probe the communications to determine which
+    # actions produce what kind of error. Unlikley that anyone would
+    # be able to effectively exploit it but why be sloppy? 
     if (looks_like_number($request)) {
 	if ($request == -1) {
 	    return -3;
@@ -1223,7 +1227,7 @@ sub addUser {
 	$dbh->disconnect();
 	return ($error);
     }
-    $logger->infor( "User " . $json->{'user-username'} . " added!" );
+    $logger->info( "User " . $json->{'user-username'} . " added!" );
     $sth->finish();
     $dbh->disconnect();
     

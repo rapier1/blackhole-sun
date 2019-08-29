@@ -78,7 +78,11 @@ if (! empty($_SESSION['username'])) {
     print $logout_btn;
     print $account_btn;
     if ($_SESSION['bh_user_role'] != 4) {
-	if ($page_id == "account" or $page_id == "faq" or $page_id == "about") {
+	if ($page_id == "account" or
+	    $page_id == "faq" or
+	    $page_id == "about" or
+	    $page_id == "index" or
+	    $page_id == "index") {
 	    print $routes_btn;
 	}
     }

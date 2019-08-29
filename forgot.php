@@ -58,7 +58,7 @@
 <body>
     <?php
     session_start();
-    $page_id = "faq";
+    $page_id = "forgot";
     include './functions.php';
     if (!empty($_SESSION["username"])){
 	    sessionTimer();

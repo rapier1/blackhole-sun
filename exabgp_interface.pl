@@ -200,7 +200,7 @@ sub authorize {
 sub genRandomString {
     my $length = shift @_;
     my $string = shift @_;
-    my $num = makerandom(Size=>6, Strength =>0);
+    my $num = makerandom(Size=>7, Strength =>0); # 2^7 = 128
     
     if ($num < 33 or $num == 127) {
 	#anything lower than 33 is nonprintable 127 is del

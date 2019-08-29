@@ -56,23 +56,19 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-	<div class="container">
-	    <div class="navbar-header">
-		<div class="navbar-brand">BlackHole Sun</div>
-	    </div> <!--navbar-header -->
-	    <div id="navbar" class="collapse navbar-collapse">
-		<ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php">Log In</a></li>
-		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-		</ul>
-	    </div> <!-- navbar -->
-	</div> <!-- END nav container -->
-    </nav>
+    <?php
+    session_start();
+    $page_id = "index";
+    include './functions.php';
+    if (!empty($_SESSION["username"])){
+	    sessionTimer();
+    }
+    include './navbar.php';
+    ?>
     <table align="center" width="50%">
 	<tr>
 	    <td><br><br><br>
-            Welcome to the 3ROX blackhole server interface. Please log into your account using the button located above. If you are a 3ROX customer and do not yet have an account please dontact us to create one for you.             
+            Welcome to the 3ROX blackhole server interface. Please log into your account using the button located above. If you are a 3ROX customer and do not yet have an account please contact us to create one for you.             
 	    </td>
 	</tr>
     </table>
