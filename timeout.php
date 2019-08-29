@@ -32,8 +32,8 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <meta http-equiv="refresh" content="5;http://<?php echo $_SERVER['SERVER_NAME'] ?>/blackholesun/login.php">
-    <link rel="icon" href="../../favicon.ico">
+    <!--     <meta http-equiv="refresh" content="5;http://<?php echo $_SERVER['SERVER_NAME'] ?>/blackholesun/login.php"> -->
+    <link rel="icon" href="./favicon.ico">
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">                                                              
     <!-- Bootstrap core CSS -->
@@ -73,7 +73,9 @@
     <table align="center" width="50%">
 	<tr>
 	    <td><br><br><br>
-		Your session has timed out due to inactivity. You will be redirected to the login page in five seconds. 
+		Your session has timed out due to inactivity. You will be redirected to the
+                <a href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php">login page</a>
+		in five seconds. 
 	    </td>
 	</tr>
     </table>

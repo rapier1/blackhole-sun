@@ -197,10 +197,10 @@ function userAffiliationWidget($affiliation) {
  */
 function loadUserForm ($user_id, $user_class, $user_id_session)
 {
-	// take an incoming user id and build a form that will allow the user or an admin
-	// to modify their information
-	$dbh = getDatabaseHandle();
-	$query = "SELECT bh_user_id,
+    // take an incoming user id and build a form that will allow the user or an admin
+    // to modify their information
+    $dbh = getDatabaseHandle();
+    $query = "SELECT bh_user_id,
                      bh_user_name,
                      bh_user_fname,
                      bh_user_lname,
@@ -210,66 +210,66 @@ function loadUserForm ($user_id, $user_class, $user_id_session)
                      bh_user_active
               FROM bh_users
               where bh_user_id = :userid";
-	try{
-		$sth = $dbh->prepare($query);
-		$sth->bindParam(':userid', $user_id, PDO::PARAM_STR);
-		$sth->execute();
-		$result = $sth->fetch(PDO::FETCH_ASSOC);
+    try{
+	$sth = $dbh->prepare($query);
+	$sth->bindParam(':userid', $user_id, PDO::PARAM_STR);
+	$sth->execute();
+	$result = $sth->fetch(PDO::FETCH_ASSOC);
+    }
+    catch(PDOException $e) {
+	// TODO need beter exception message passing here
+	$error =  "Something went wrong while interacting with the database:"
+		. $e->getMessage();
+	return array(-1, $error);
+    }
+    if (! isset($result)) {
+	// The DB didn't return a result or there was an error
+	$error = "No results were returned. There may be a problem with the database.";
+	return array (-1, $error);
+    }
+    $active_widget = "";
+    // standard user class is 1, 2 is for the NOC, 4 is for the BHS admin, I don't know what 3 is for
+    if ($user_class >= 2) {
+	if ($result['bh_user_active'] == 1) {
+	    $yes = "checked";
+	    $no = "";
+	} else {
+	    $yes = "";
+	    $no = "checked";
 	}
-	catch(PDOException $e) {
-		// TODO need beter exception message passing here
-		$error =  "Something went wrong while interacting with the database:"
-				. $e->getMessage();
-		return array(-1, $error);
-	}
-	if (! isset($result)) {
-		// The DB didn't return a result or there was an error
-		$error = "No results were returned. There may be a problem with the database.";
-		return array (-1, $error);
-	}
-	$active_widget = "";
-	// standard user class is 1, 2 is for the NOC, 4 is for the BHS admin, I don't know what 3 is for
-	if ($user_class >= 2) {
-		if ($result['bh_user_active'] == 1) {
-			$yes = "checked";
-			$no = "";
-		} else {
-			$yes = "";
-			$no = "checked";
-		}
-		$active_widget = "<div class ='form-group'>
+	$active_widget = "<div class ='form-group'>
 		<label for='user-active'>Active:</label>
 		<div class = 'form-control'>
 		<input type='radio' name='user-active' value='1' $yes> Active
 		<input type='radio' name='user-active' value='0' $no> Inactive
 		</div>
 		</div>";
-	} // end active widget creation
-	// we need a widget to change the role
-		$role_widget = "";
-		$delete_widget = "";
-		if ($user_class == 4) {
-		// they have to be a BHS admin to change roles
-			$role_widget = "<div class='form-group'>
+    } // end active widget creation
+    // we need a widget to change the role
+    $role_widget = "";
+    $delete_widget = "";
+    if ($user_class == 4) {
+	// they have to be a BHS admin to change roles
+	$role_widget = "<div class='form-group'>
 			<label for='user-role'>Role:</label>
                         <div class='form-control'>
                           <select name='user-role' id='user-role'>";
         $roles = array("1" => "User", "2" => "PSC Staff", "4" => "BHS Admin");
         foreach (array_keys($roles) as $key) {
-        		$selected = '';
+            $selected = '';
             if ($key == $result['bh_user_role']) {
-            $selected = "selected";
+		$selected = "selected";
             }
             $role_widget .= "<option value=$key $selected>$roles[$key]</option>";
-            }
-            $role_widget .= "</select></div></div>";
-            }
-
-            $user_affiliation = userAffiliationWidget($result['bh_user_affiliation']);
-
-            $form  = "<form id='updateUserForm' role='form' class='form-horizontal col-8' action='" .
+        }
+        $role_widget .= "</select></div></div>";
+    }
+    
+    $user_affiliation = userAffiliationWidget($result['bh_user_affiliation']);
+    
+    $form  = "<form id='updateUserForm' role='form' class='form-horizontal col-8' action='" .
              htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
-             $form .= "<input type='hidden' name='action' value='updateUser' />\n";
+    $form .= "<input type='hidden' name='action' value='updateUser' />\n";
     $form .= "<input type='hidden' name='bh_user_id' value='$user_id' />\n";
     $form .= "<div class='form-group'><label for='user-username'> Username:</label><input type='text' name='user-username' class='form-control' value='$result[bh_user_name]' required></div>\n";
     $form .= "<div class='form-group'><label for='user-fname'> First name:</label><input type='text' name='user-fname' class='form-control' value='$result[bh_user_fname]' required></div>\n";
@@ -280,14 +280,14 @@ function loadUserForm ($user_id, $user_class, $user_id_session)
     $form .= $active_widget;
     $form .= "<button type='submit' class='btn btn-lg btn-success'>Update Account</button></form>";
     if ($user_id_session == $user_id) {
-    $form .= "<P><P><input action=\"action\" onclick=\"javascript:toggle_vis('np');\";
+	$form .= "<P><P><input action=\"action\" onclick=\"javascript:toggle_vis('np');\";
            return false;\" type=\"button\" value=\"Change Password\" class=\"btn btn-lg btn-success\"/>\n";
-    $form .= "<div id='np' style='display: none;'>";
-            $form .= changePasswordWidget();
+	$form .= "<div id='np' style='display: none;'>";
+	$form .= changePasswordWidget();
 	$form .= "</div>";
-            }
-            //    $form .= "</div>";
-            return array (1, $form);
+    }
+    //    $form .= "</div>";
+    return array (1, $form);
 }
 
 ?>

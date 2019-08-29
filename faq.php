@@ -26,7 +26,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <link rel="icon" href="../../favicon.ico">
+    <link rel="icon" href="./icons/favicon.ico">
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
@@ -45,59 +45,22 @@
     <script type="text/javascript" src="./jquery/jquery.min.js"></script>
     <!-- bootstrap javascript -->
     <script src="bootstrap/dist/js/bootstrap.min.js"></script>
-    <!-- modals code -->
-    <script src="./trmodals.js"></script>
-    <script src="./heartbeat.js"></script> 
 </head>
 
 <body>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-	<div class="container">
-	    <div class="navbar-header">
-		<div class="navbar-brand">BlackHole Sun</div>
-	    </div> <!--navbar-header -->
-	    <div id="navbar" class="collapse navbar-collapse">
-		<ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-		    <li><a>Status: </a></li>
-		    <li><a><img id="clibeatdot" src="./reddot.png" height="10" width="10" title="BHS Web Interface Status"></a></li>
-		    <li><a><img id="exabeatdot" src="./reddot.png" height="10" width="10" title="BHS ExaBGP Interface Status"></a></li>
-		    <li><a><img id="bgpbeatdot" src="./reddot.png" height="10" width="10" title="ExaBGP Server Status"></a></li>
-		</ul>
-              	<?php
-		session_start();
-		if (!empty($_SESSION["username"]))
-		{
-		    sessionTimer();
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"routeList\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/routes.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Route List</button></p>";
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Logout</button></p>";
-		} else {
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Login</button></p>";
-		}
-		if ($_SESSION["bh_user_role"] == 4)
-		{
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"usermanagement\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/usermanagement.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Users</button></p>";
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"customers\"
-                           onClick=\"window.location='http://". $_SERVER['SERVER_NAME'] ."/blackholesun/customers.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Customers</button></p>";
-		}
-		?>
-	    </div> <!-- navbar -->
-	</div> <!-- END nav container -->
-    </nav>
+    <?php
+    session_start();
+    $page_id = "faq";
+    include './functions.php';
+    if (!empty($_SESSION["username"])){
+	sessionTimer();
+    }
+    include './navbar.php';
+    ?>
     <table align="center" width="50%">
 	<tr>
 	    <td><br><br><br>
-            Here we will have FAQs.
+		Here we will have FAQs.
 	    </td>
 	</tr>
     </table>

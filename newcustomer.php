@@ -29,7 +29,7 @@
     <?php
     session_start();
     include './functions.php';
-    include './customer_functions';
+    include './customer_functions.php';
     if (empty($_SESSION["username"]))
     {
         header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
@@ -42,6 +42,7 @@
         header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/routes.php");
         die();
     }
+    $page_id = "new_customer";
     ?>
 
     <meta charset="UTF-8">
@@ -50,7 +51,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <link rel="icon" href="../../favicon.ico">
+    <link rel="icon" href="./icons/favicon.ico">
     <title>BlackHole Sun - New Customer</title>
     <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
@@ -74,31 +75,9 @@
 </head>
 
 <body>
-    <?php include ("./modals.php"); ?>
-
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-	<div class="container">
-	    <div class="navbar-header">
-		<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-		    <span class="sr-only">Toggle navigation</span>
-		    <span class="icon-bar"></span>
-		    <span class="icon-bar"></span>
-		    <span class="icon-bar"></span>
-		</button>
-		<div class="navbar-brand">BlackHole Sun</div>
-	    </div> <!--navbar-header -->
-	    <div id="navbar" class="collapse navbar-collapse">
-		<ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-		</ul>
-		<p class="navbar-right navbar-btn"><button id="userManagment" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/usermanagement.php'" type="button" class="btn btn-sm btn-primary">Users</button></p>
-		<p class="navbar-right navbar-btn"><button id="Customers" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/customers.php'" type="button" class="btn btn-sm btn-primary">Customers</button></p>
-	    </div> <!-- navbar -->
-	</div> <!-- END nav container -->
-    </nav>
-
     <?php
+    include ("./modals.php");
+    include ("./navbar.php");
     $errFlag="";
     $errMsg="";
     $url = "";

@@ -33,7 +33,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <link rel="icon" href="../../favicon.ico">
+    <link rel="icon" href="./icons/favicon.ico">
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
@@ -65,19 +65,6 @@
         die();
     }
     include("./functions.php");
-
-    function changePasswordWidget () {
-    	$form  = "<form id='updatePassword' role='form' class='form-horizontal col-8' action='"  .
-    			htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
-    	$form .= "<input type='hidden' name='form_src' value='userManagement' />\n";
-    	$form .= "<input type='hidden' name='action' value='changePassword' />\n";
-    	$form .= "<input type='hidden' name='bh_user_id' value='" . $_SESSION['bh_user_id'] . "' />\n";
-    	$form .= "<div class='form-group'><label for='cpass'> Current Password:</label><input type='password' name='cpass' class='form-control' value='' required></div>\n";
-    	$form .= "<div class='form-group'><label for='npass1'> New Password:</label><input type='password' name='npass1' class='form-control' value='' required></div>\n";
-    	$form .= "<div class='form-group'><label for='npass2'> Confirm Password:</label><input type='password' name='npass2' class='form-control' value='' required></div>\n";
-    	$form .= "<button type='submit' class='btn btn-lg btn-success'>Update Password</button></form>";
-    	return($form);
-    }
     ?>
 </head>
 

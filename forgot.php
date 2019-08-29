@@ -32,7 +32,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <link rel="icon" href="../../favicon.ico">
+    <link rel="icon" href="./icons/favicon.ico">
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">                                                              
     <!-- Bootstrap core CSS -->
@@ -56,19 +56,15 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-	<div class="container">
-	    <div class="navbar-header">
-		<div class="navbar-brand">BlackHole Sun</div>
-	    </div> <!--navbar-header -->
-	    <div id="navbar" class="collapse navbar-collapse">
-		<ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-		</ul>
-	    </div> <!-- navbar -->
-	</div> <!-- END nav container -->
-    </nav>
+    <?php
+    session_start();
+    $page_id = "faq";
+    include './functions.php';
+    if (!empty($_SESSION["username"])){
+	    sessionTimer();
+    }
+    include './navbar.php';
+    ?>
     <table align="center" width="50%">
 	<tr>
 	    <td><br><br><br>

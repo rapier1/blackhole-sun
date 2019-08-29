@@ -67,8 +67,7 @@ sub readConfig {
     if ( !-e $cfg_path ) {
 	print STDERR "Config file not found at $cfg_path. Exiting.\n";
 	exit;
-    }
-    else {
+    } else {
 	$config = Config::Tiny->read($cfg_path);
 	my $error = $config->errstr();
 	if ( $error ne "" ) {
@@ -355,7 +354,7 @@ sub decrypt {
     my $AES = Crypt::Mode::CTR->new('AES');
 
     #encrypt the data with the unencrypted AES key and the iv
-    eval {$enclear = $AES->decrypt($ciphertext, $key, $iv+1)};
+    eval {$enclear = $AES->decrypt($ciphertext, $key, $iv)};
     if ($@) {
 	$logger->error("Error decrypting message: $@");
 	return -999;
@@ -419,8 +418,7 @@ sub mainloop {
 		    my $status = processInboundRequests( $child, $json );
 		    $logger->debug("I got $status");
 		    print $child "$status\n";
-		}
-		else {
+		} else {
 		    print $child "Invalid JSON\n";
 		}
 		exit(0);    # Child process exits when it is done.
@@ -734,14 +732,12 @@ sub listExistingBH {
                           FROM bh_routes 
                           WHERE bh_customer_id = ?
                           AND bh_active = 1";
-	}
-	else {
+	} else {
 	    $query = "SELECT * 
                           FROM bh_routes 
                           WHERE bh_customer_id = ?";
 	}
-    }
-    else {
+    } else {
 	# they are staff or BH manager
 	$query = "SELECT * FROM bh_routes";
 	if ( $action eq "active" ) {
@@ -763,8 +759,7 @@ sub listExistingBH {
 	# if the customer_id is not the same as the owner id they don't have rights
 	if ( $result->{'bh_customer_id'} == $result->{'bh_owner_id'} ) {
 	    $result->{'editable'} = 1;
-	}
-	else {
+	} else {
 	    $result->{'editable'} = -1;
 	}
 	push @results, $result;
@@ -826,8 +821,15 @@ sub blackHole {
 
     #encrypt the request and make sure that we did not run into problems
     $request = encrypt($request);
-    if ($request == -1) {
-	return -3;
+
+    # we need to use looks_like_number to differentiate between
+    # an encrypted string and a numerical error code.
+    # TODO: You should set this up so that all communication between client
+    # and server have an error field, error message field, and payload. 
+    if (looks_like_number($request)) {
+	if ($request == -1) {
+	    return -3;
+	}
     }
     
     # everything worked so send the request
@@ -843,11 +845,13 @@ sub blackHole {
     # check to see if we got a bare value back. This indicates a crypto failure on the
     # remote end
 
-    if ($status == -2) {
-	return -4;
-    }
-    if ($status == -3) {
-	return -5;
+    if (looks_like_number($status)) {
+	if ($status == "-2") {
+	    return -4;
+	}
+	if ($status == "-3") {
+	    return -5;
+	}
     }
     
     #decrypt whatever we received
@@ -856,8 +860,10 @@ sub blackHole {
 
     # -999 indicates a local crypto failure while decrypting the response
     # why -999? Because we can get other negative values as valid responses
-    if ($status == -999) {
-	return -2;
+    if (looks_like_number($status)) {
+	if ($status == "-999") {
+	    return -2;
+	}
     }
     
     $logger->debug("status in function blackHole is $status");
@@ -1281,7 +1287,6 @@ sub resetPassword {
     my @result = $sth->fetchrow_array();
     $sth->finish();
     my $target_email = $result[0];
-    print "The email is $target_email\n";
     
     # we have the email now update the password
     my $passhash = password_hash( $newPassword, PASSWORD_BCRYPT );
@@ -1458,13 +1463,12 @@ sub pushChanges {
                  FROM   bh_routes
                  WHERE  bh_active = 1";
 
-  # if they aren't an admin/staff then only grab the ones they have control over
+    # if they aren't an admin/staff then only grab the ones they have control over
     if ( $json->{'bh_user_role'} == 1 ) {
 	$query .= " AND  bh_customer_id = ?";
 	$sth = $dbh->prepare($query);
 	$sth->bind_param( 1, $json->{'bh_customer_id'} );
-    }
-    else {
+    } else {
 	$sth = $dbh->prepare($query);
     }
     
@@ -1472,6 +1476,7 @@ sub pushChanges {
     if ( $sth->err() ) {
 	$logger->error("Error in updateloop: $sth->errstr()");
     }
+
     while ( my @result = $sth->fetchrow_array() ) {
 	$dbblocks{ $result[0] } = 1;
     }
@@ -1498,9 +1503,7 @@ sub pushChanges {
 	if ( defined $protected{$exa} ) {
 	    next;
 	}
-	print "Looking at $exa in del routine result is $dbblocks{$exa}\n";
 	if ( !defined $dbblocks{$exa} ) {
-	    print "$exa does not exist in db hash at $dbblocks{$exa}";
 	    $logger->info("$exa is not in database: deleting");
 	    $route{'bh_route'} = $exa;
 	    sendtoExaBgpInt( "", \%route, "del" );
@@ -1508,7 +1511,6 @@ sub pushChanges {
     }
     
     foreach my $db ( keys %dbblocks ) {
-	print "Looking at $db in add routine result is $exablocks{$db}\n";
 	if ( !defined $exablocks{$db} ) {
 	    $logger->info("$db is not in exabgp: adding");
 	    $route{'bh_route'} = $db;
@@ -1567,8 +1569,7 @@ sub customerOnlyRoutes {
 	    #then we exit the inner loop after resetting the flag to 0
 	    if ( !$netblock->match($ip) ) {
 		$delete_flag = 1;
-	    }
-	    else {
+	    } else {
 		$delete_flag = 0;
 		last;
 	    }
@@ -1691,8 +1692,7 @@ sub objectToString {
 	$ret .= ref($obj) . " { ";
 	$ret .= $obj->bstr;
 	$ret .= " }";
-    }
-    elsif ( $realtype eq "ARRAY" ) {
+    } elsif ( $realtype eq "ARRAY" ) {
 	$ret .= ref($obj) . " {\n";
 	
 	# check whether this is a pseudo-hash
@@ -1704,18 +1704,15 @@ sub objectToString {
 				 $k,
 				 objectToString( @{$obj}[ $pseudo->{$k} ], $indent + 1 ) );
 	    }
-	}
-	else {
+	} else {
 	    foreach my $o ( @{$obj} ) {
 		$ret .= indent( $indent + 1 );
 		if ( ref($o) eq "HASH" || ref($o) eq "ARRAY" ) {
 		    $ret .= objectToString( $o, $indent + 1 ) . "\n";
-		}
-		else {
+		} else {
 		    if ( defined($o) ) {
 			$ret .= objectToString( $o, $indent + 1 ) . "\n";
-		    }
-		    else {
+		    } else {
 			$ret .= "<<undef>>\n";
 		    }
 		}
@@ -1723,8 +1720,7 @@ sub objectToString {
 	}
 	$ret .= indent($indent) . "}\n";
 	
-    }
-    elsif ( $realtype eq "HASH" ) {
+    } elsif ( $realtype eq "HASH" ) {
 	$ret .= ref($obj) . " {\n";
 	foreach my $k ( keys %{$obj} ) {
 	    $ret .= indent( $indent + 1 );
@@ -1732,8 +1728,7 @@ sub objectToString {
 			     $k, objectToString( $obj->{$k}, $indent + 1 ) );
 	}
 	$ret .= indent($indent) . "}";
-    }
-    else {
+    } else {
 	$ret .= $obj;
     }
     return $ret;
@@ -1867,8 +1862,7 @@ getopts( "f:h", \%options );
 if ( defined $options{h} ) {
     print "client usage\n";
     print "\client.pl [-f] [-h]\n";
-    print
-	"\t-f path to configuration file. Defaults to /usr/local/etc/client.cfg\n";
+    print "\t-f path to configuration file. Defaults to /usr/local/etc/client.cfg\n";
     print "\t-h this help text\n";
     exit;
 }
@@ -1877,8 +1871,7 @@ if ( defined $options{h} ) {
 if ( defined $options{f} ) {
     if ( -e $options{f} ) {
 	$cfg_path = $options{f};
-    }
-    else {
+    } else {
 	print STDERR "Configuration file not found at $options{f}. Exiting.\n";
 	exit;
     }

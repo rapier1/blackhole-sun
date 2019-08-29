@@ -26,7 +26,7 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <link rel="icon" href="../../favicon.ico">
+    <link rel="icon" href="./icons/favicon.ico">
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
@@ -45,57 +45,23 @@
     <script type="text/javascript" src="./jquery/jquery.min.js"></script>
     <!-- bootstrap javascript -->
     <script src="bootstrap/dist/js/bootstrap.min.js"></script>
-    <!-- modals code -->
-    <script src="./trmodals.js"></script>
 </head>
 
 <body>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-	<div class="container">
-	    <div class="navbar-header">
-		<div class="navbar-brand">BlackHole Sun</div>
-	    </div> <!--navbar-header -->
-	    <div id="navbar" class="collapse navbar-collapse">
-		<ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-		</ul>
-		<?php
-		include './functions.php';
-		session_start();
-		if (!empty($_SESSION["username"]))
-		{
-		    sessionTimer();
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"routeList\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/routes.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Route List</button></p>";
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Logout</button></p>";
-		} else {
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"logout\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/login.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Login</button></p>";
-		}
-		if ($_SESSION["bh_user_role"] == 4)
-		{
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"usermanagement\"
-                           onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/usermanagement.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Users</button></p>";
-		    print "<p class=\"navbar-right navbar-btn\"><button id=\"customers\"
-                           onClick=\"window.location='http://". $_SERVER['SERVER_NAME'] ."/blackholesun/customers.php'\"
-                           type=\"button\" class=\"btn btn-sm btn-primary\">Customers</button></p>";
-		}
-		?>
-            </div><!--/.nav-collapse -->
-	    </div> <!-- navbar -->
-	</div> <!-- END nav container -->
-    </nav>
+    <?php
+    session_start();
+    $page_id = "faq";
+    include './functions.php';
+    if (!empty($_SESSION["username"])){
+	sessionTimer();
+    }
+    include './navbar.php';
+    ?>
     <table align="center" width="50%">
 	<tr>
 	    <td><br><br><br>
-              Blackhole Sun is a new tool from the Pittsburgh Supercomputing Center designed to manage black hole routes on ExaBGP route servers. 
-
+		Blackhole Sun is a new tool from the Pittsburgh Supercomputing Center designed to manage black hole routes on ExaBGP route servers. 
+		
 	    </td>
 	</tr>
     </table>

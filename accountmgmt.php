@@ -23,8 +23,6 @@
  */
 
 ?>
-
-
 <!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
@@ -33,20 +31,20 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
-    <link rel="icon" href="../../favicon.ico">
-    <title>BlackHole Sun</title>
+    <link rel="icon" href="./icons/favicon.ico">
+    <title>BlackHole Sun Account Management</title>
     <link href="jquery/datatables.css" rel="stylesheet">
     <!-- Bootstrap core CSS -->
-         <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-         <link href="bootstrap/assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
+    <link href="bootstrap/assets/css/ie10-viewport-bug-workaround.css" rel="stylesheet">
     <!-- Custom styles for this template -->
-         <link href="trstylesheet.css" rel="stylesheet">
+    <link href="trstylesheet.css" rel="stylesheet">
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-         <!--[if lt IE 9]>
-             <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
-             <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-         <![endif]-->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+        <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
 
     <!-- load jquery -->
     <script type="text/javascript" src="./jquery/jquery.min.js"></script>
@@ -56,47 +54,21 @@
     <script src="bootstrap/dist/js/bootstrap.min.js"></script>
     <!-- modals code -->
     <script src="./trmodals.js"></script>
+</head>
+<body>
 
     <?php
     session_start();
-    if (empty($_SESSION["username"]))
-    {
+    if (empty($_SESSION["username"])) {
         header("Location: http://". $_SERVER['SERVER_NAME']. "/blackholesun/login.php");
         die();
     }
+    $page_id = "account";
     include './functions.php';
     include './user_functions.php';
-    ?>
-</head>
-
-<body>
-    <?php include ("./modals.php"); ?>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-		<div class="navbar-brand">BlackHole Sun</div>
-            </div>
-            <div id="navbar" class="collapse navbar-collapse">
-                <ul class="nav navbar-nav">
-		    <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-		    <li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-                </ul>
-		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/routes.php'"  type="button" class="btn btn-sm btn-primary">Routes</button></p>
-		<p class="navbar-right navbar-btn"><button id="logout" onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"  type="button" class="btn btn-sm btn-primary">Logout</button></p>
-            </div><!--/.nav-collapse -->
-	</div> <!-- END nav container -->
-    </nav>
-    <table align="center" width="33%"><tr><td>
-	<!-- enter any preliminary text here -->
-    </td>
-    </tr>
-    <?php
+    include ("./modals.php");
+    include ("./navbar.php");
+    sessionTimer();
     $errFlag="";
     $errMsg="";
     $url = "";
@@ -136,23 +108,24 @@
 	}
     }
     list($error, $form) = loadUserForm($_SESSION['bh_user_id'], $_SESSION['bh_user_role'], $_SESSION['bh_user_id']);
-    if ($error) {
+    if ($error == -1) {
 	$errFlag = 1;
-	$errMsg = "There has been an error : $error";
+	$errMsg = "There has been an error : $form";
     } else {
+	print "<table align='center' width='33%'>";
         print "<tr><td>";
-	print $form;
-    print "<tr><td><br></td></tr>\n";
-    print "<tr><td>";
-    if ($_SESSION['bh_user_role'] == 4) {
-        print "<input action=\"action\" onclick=\"window.location = './usermanagement.php';
+        print $form;
+        print "<tr><td><br></td></tr>\n";
+        print "<tr><td>";
+        if ($_SESSION['bh_user_role'] == 4) {
+            print "<input action=\"action\" onclick=\"window.location = './usermanagement.php';
            return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
     } else {
         print "<input action=\"action\" onclick=\"window.location = './routes.php';
            return false;\" type=\"button\" value=\"Cancel\" class=\"btn btn-lg btn-danger\"/>\n";
     }
     print "</td></tr>\n";
-	print "</td></tr>";
+    print "</td></tr>";
     }
     ?>
 

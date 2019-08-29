@@ -49,7 +49,7 @@
 <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 <meta name="description" content="BlackHole Sun">
 <meta name="author" content="Pittsburgh Supercompuing Center">
-<link rel="icon" href="../../favicon.ico">
+<link rel="icon" href="./favicon.ico">
 <title>BlackHole Sun</title>
 <link href="jquery/datatables.css" rel="stylesheet">
 <!-- Bootstrap core CSS -->
@@ -80,7 +80,6 @@
 <!-- Tablesorter: optional -->
 <link rel="stylesheet" href="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.css">
 <script	src="jquery/tablesorter-master/addons/pager/jquery.tablesorter.pager.js"></script>
-<!--  <script src="./heartbeat.js"></script>-->
 
 <?php
 session_start ();
@@ -90,70 +89,17 @@ if (empty ( $_SESSION ["username"] )) {
 }
 include ("./functions.php");
 include ("./route_functions.php");
+sessionTimer();
+$_SESSION ['errFlag'] = 0;
+$_SESSION ['errMsg'] = "";
+$page_id = "routes";
 ?>
 
 </head>
 
 <body>
     <?php include ("./modals.php"); ?>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-	<div class="container">
-	    <div class="navbar-header">
-		<div class="navbar-brand">BlackHole Sun</div>
-	    </div>
-	    <div id="navbar" class="collapse navbar-collapse">
-		<ul class="nav navbar-nav">
-		    <li><a id="menu-home"
-			   href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-		    <li><a id="menu-faq"
-			   href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-		    <li><a>Status: </a></li>
-		    <li><a>
-			<img id="clibeatdot" src="./greendot.png" height="10" width="10" title="BHS Web Interface Status">
-		    </a></li>
-		    <li><a>
-			<img id="exabeatdot" src="./greendot.png" height="10" width="10" title="BHS ExaBGP Interface Status">
-		    </a></li>
-		    <li><a>
-			<img id="bgpbeatdot" src="./greendot.png" height="10" width="10" title="ExaBGP Server Status">
-		    </a></li>
-		    <li><a>
-			<?php echo $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name']?>
-		    </a></li>
-
-		</ul>
-		<p class="navbar-right navbar-btn">
-		    <button id="account" onClick="window.location=
-                                'http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/accountmgmt.php'"
-				type="button" class="btn btn-sm btn-primary">Account</button>
-		</p>
-		<?php
-		$_SESSION ['errFlag'] = 0;
-		$_SESSION ['errMsg'] = "";
-		if ($_SESSION ['bh_user_role'] == 4) {
-		    print "<p class='navbar-right navbar-btn'><button id='userManagement'
-                           onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME']
-			   . "/blackholesun/usermanagement.php'\"  type='button'
-                           class='btn btn-sm btn-primary'>Users</button></p>";
-		    print "<p class='navbar-right navbar-btn'><button id='customers'
-                           onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME']
-			   . "/blackholesun/customers.php'\"  type='button'
-                           class='btn btn-sm btn-primary'>Customers</button></p>";
-		}
-		?>
-		<p class="navbar-right navbar-btn">
-		    <button id="logout"
-				onClick="window.location='http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/login.php'"
-				type="button" class="btn btn-sm btn-primary">Logout</button>
-		</p>
-		</p>
-		
-	    </div>
-	    <!--/.nav-collapse -->
-	</div>
-	<!-- END nav container -->
-    </nav>
-    
+    <?php include ("./navbar.php"); ?>    
     <div class="container-fluid text-left">
 	<!-- indent the main body -->
 	<div class="row content">

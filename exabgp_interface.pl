@@ -115,7 +115,11 @@ sub validateConfig {
 	$logger->error("ExaBGP in pipe file location not defined in config file. Exiting");
         exit;
     }
-
+    if (! defined $config->{'exabgppipe'}->{'pipeout'}) {
+        print STDERR "ExaBGP out pipe file location not defined in config file. Exiting\n";
+	$logger->error("ExaBGP out pipe file location not defined in config file. Exiting");
+        exit;
+    }
 }
 
 sub authorize {
@@ -327,7 +331,7 @@ sub processInput {
     }
 
     if ($request->{'action'} eq "dump") {
-	$response = encrypt(&dumproutes());
+	$response = encrypt(&dumpRoutes());
 	print $cli_socket $response;
 	return;
     }
@@ -338,14 +342,15 @@ sub processInput {
 	return;
     }
 
-    if ($request->{'action'} == "exabeat") {
+    if ($request->{'action'} eq "exabeat") {
 	$response = encrypt("Success");
 	print $cli_socket $response;
 	return;
     }
 
-    if ($request->{'action'} == "bgpbeat") {
-	if (-e $config->{'exabgp'}->{'exabgp.in'}) {
+    if ($request->{'action'} eq "bgpbeat") {
+	if ( (-e $config->{'exabgppipe'}->{'pipein'}) &&
+	     (-e $config->{'exabgppipe'}->{'pipeout'}) {
 	    $response = encrypt("Success");
 	    print $cli_socket $response;
 	    return;
@@ -360,8 +365,10 @@ sub processInput {
     # encrypt -2 and send it back out
     # 3 indicates a problem with encrytption as a whole and
     # we probably shouldn't try to use it to send a value back
-    if ($client_input == -1) {
-	$response = -3;
+    if (looks_like_number($client_input)) {
+	if ($client_input == -1) {
+	    $response = -3;
+	}
     } else {
 	$response = encrypt("-2");
     }
