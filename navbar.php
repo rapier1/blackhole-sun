@@ -60,15 +60,15 @@ href=\"http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/about.php\">About</a>
 		       href=\"http://" . $_SERVER['SERVER_NAME'] . "/blackholesun/faq.php\">FAQ</a></li>
 		<li><a>Status: </a></li>
 		<li><a>
-		    <img id='clibeatdot' src='./greendot.png' height='10' width='10' 
+		    <img id='clibeatdot' src='./icons/greendot.png' height='10' width='10' 
 			 title='BHS Web Interface Status'>
 		</a></li>
 		<li><a>
-		    <img id='exabeatdot' src='./greendot.png' height='10' width='10' 
+		    <img id='exabeatdot' src='./icons/greendot.png' height='10' width='10' 
 			 title='BHS ExaBGP Interface Status'>
 		</a></li>
 		<li><a>
-		    <img id='bgpbeatdot' src='./greendot.png' height='10' width='10' 
+		    <img id='bgpbeatdot' src='./icons/greendot.png' height='10' width='10' 
 			 title='ExaBGP Server Status'>
 		</a></li>
 		<li><a>$user_name</a></li>

@@ -10,6 +10,7 @@ $(document).ready(function () {
     //setInterval("getHeartbeat('clibeat')", 30000);
     //setInterval("getHeartbeat('exabeat')", 30000);
     //setInterval("getHeartbeat('bgpbeat')", 30000);
+    //changed my mind as it's a lot of calls just get it on page load
 });
 
 function getHeartbeat (heartbeat) {
@@ -19,23 +20,23 @@ function getHeartbeat (heartbeat) {
 function handleResult (data, status, heartbeat) {
     if (heartbeat == 'clibeat') {
 	if (data == 1) {
-	    $('#clibeatdot').attr('src', './greendot.png');
+	    $('#clibeatdot').attr('src', './icons/greendot.png');
 	} else {
-	    $('#clibeatdot').attr('src', './reddot.png');
+	    $('#clibeatdot').attr('src', './icons/reddot.png');
 	}
     }
     if (heartbeat == 'exabeat') {
 	if (data == 1) {
-	    $('#exabeatdot').attr('src', './greendot.png');
+	    $('#exabeatdot').attr('src', './icons/greendot.png');
 	} else {
-	    $('#exabeatdot').attr('src', './reddot.png');
+	    $('#exabeatdot').attr('src', './icons/reddot.png');
 	}
     }
     if (heartbeat == 'bgpbeat') {
 	if (data == 1) {
-	    $('#bgpbeatdot').attr('src', './greendot.png');
+	    $('#bgpbeatdot').attr('src', './icons/greendot.png');
 	} else {
-	    $('#bgpbeatdot').attr('src', './reddot.png');
+	    $('#bgpbeatdot').attr('src', './icons/reddot.png');
 	}
     }
 }
