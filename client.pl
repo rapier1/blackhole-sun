@@ -856,22 +856,11 @@ sub blackHole {
     }
     
     # everything worked so send the request
-    use Time::HiRes qw(time);
-    my $start = time();
     print $srv_socket $request . "\n";
-    my $mid = time();
-    
+
     # wait for a result
     $status = <$srv_socket>;
     chomp $status;
-    
-    my $end = time();
-
-    my $send = sprintf("%.2f", $mid - $start);
-    my $wait = sprintf("%.2f", $end - $mid);
-    my $tot = sprintf("%.2f", $end - $start);
-    
-    $logger->debug("Send; $send, wait; $wait, total; $tot");
     
     # we can get multiple responses
     # -2 = encrypt failure on remote
