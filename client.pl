@@ -28,7 +28,6 @@
 
 use strict;
 use warnings;
-use IO::Socket::SSL qw(inet4);
 use IO::Socket::INET;
 use IO::Socket::Timeout;
 use CryptX;
@@ -36,7 +35,6 @@ use Crypt::PK::RSA;
 use Crypt::PK::DH qw(dh_shared_secret);
 use Crypt::Mode::CTR;
 use Crypt::Random qw(makerandom);
-use Try::Tiny;
 use Config::Tiny;
 use Getopt::Std;
 use Data::Dumper;
@@ -46,11 +44,9 @@ use DBI;
 use Net::Netmask;
 use Scalar::Util qw(looks_like_number);
 use App::Genpass;      # create random password
-use Email::Stuffer;    # MIME::Lite has been deprecated
 use Email::Sender::Simple qw(sendmail);
 use Email::Simple;
 use Email::Simple::Creator;
-use Email::Send;
 
 # this is to ensure that the password
 # functions in the php side match what
@@ -232,14 +228,18 @@ sub authorize {
 }
 
 
-#for various dumb reasons I'm goint to use makrandom to generate
-#a sting of characers (the key and IV in the AES encrypt/decrypt needs to be
-#a string and not a number and quoting the variable isn't making it work better
-#so we are doing this. Recursively generate a string of a desired length using
-#printable ASCII characters.
-#input length - int - length of string
-#      string - char - generated string
-#         note : when you initially call genRandomString 'string' should
+# for various dumb reasons I'm going to use makrandom to generate
+# a string of characers (the key and IV in the AES encrypt/decrypt needs to be
+# a string and not a number and quoting the variable isn't making it work better
+# so we are doing this. Recursively generate a string of a desired length using
+# printable ASCII characters.
+# as a note: this isn't necessary the best way to do this
+# I could have just had a loop that loaded the random numbers into an array
+# and then gone through that array to convert it into chars. Doing it
+# recursively was just more fun
+# input length - int - length of string
+#       string - char - generated string
+#       note : when you initially call genRandomString 'string' should
 #                be null
 #output char (string of desired length)
 sub genRandomString {
@@ -368,11 +368,16 @@ sub openExaSocket {
     $logger->debug(
 	"About to open ExaSocket: $config->{'interface'}->{'host'}, $config->{'interface'}->{'port'}"
 	);
-    my $sock = IO::Socket::INET->new(
-	PeerAddr => $config->{'interface'}->{'host'},
-	PeerPort => $config->{'interface'}->{'port'},
-	Proto    => 'tcp'
-	) or die "Cannot connect: $!\n";
+    my $sock; 
+    eval {$sock = IO::Socket::INET->new(
+	      PeerAddr => $config->{'interface'}->{'host'},
+	      PeerPort => $config->{'interface'}->{'port'},
+	      Proto    => 'tcp'
+	      )};
+    if ($@) {
+	$logger->error("Could not open socket to ExaBGP interface: $@");
+	return -1;
+    }
     return $sock;
 }
 
@@ -403,8 +408,8 @@ sub mainloop {
 		close($child);
 	    }
 	    IO::Socket::Timeout->enable_timeouts_on($child);
-	    $child->read_timeout(1);
-	    $child->write_timeout(1);
+	    $child->read_timeout(0.1);
+	    $child->write_timeout(0.1);
 	    
 	    # Child process
 	    while ( defined( my $buf = <$child> ) ) {
@@ -436,15 +441,15 @@ sub validateJson {
     my $jsonstring = shift;
     my $text;
 
-    #    try {
-    $text = decode_json($jsonstring);
-    
-    #    } catch {
-    #	return -1
-    #    }
+    eval {$text = decode_json($jsonstring)};
+    if ($@) {
+	$logger->error("Invalid JSON passed to client");
+	return -1;
+    }    
     return $text;
 }
 
+# some basic input validation 
 sub validateBHInput {
     my $json = shift;
 
@@ -452,7 +457,6 @@ sub validateBHInput {
     # it here
     my $block = Net::Netmask->new2( $json->{bh_route} );
     if ( !$block ) {
-
 	#invalid ip address
 	return -1;
     }
@@ -463,13 +467,13 @@ sub validateBHInput {
 	return -2;
     }
 
-    #check to see if they are making an imortal blackhole
+    #check to see if they are making an immortal blackhole
     if ( $json->{bh_lifespan} == 9999 ) {
 	return 1;
     }
-    if (   $json->{bh_lifespan} < $config->{'duration'}->{'min'}
-	   || $json->{bh_lifespan} > $config->{'duration'}->{'max'} )
-    {
+    # ensure the time period is inbounds
+    if ($json->{bh_lifespan} < $config->{'duration'}->{'min'}
+	|| $json->{bh_lifespan} > $config->{'duration'}->{'max'}) {
 	return -3;
     }
     return 1;
@@ -482,7 +486,16 @@ sub processInboundRequests {
     my $json  = shift;    # keep in mind that this is not a json object
     # but the decoded json object. Yeah, nomenclature
     # is annoying
-    
+
+    # a gigantic switch statement is probably the wrong way to do this
+    # but it's working effectively at this point. I shoudl refactor this
+    # to use a more managable method
+    # eg - have a hash of case names with the value of a function
+    # %case = ("foo" => "bar");
+    # $case{$json->{'action'})();
+    # would call the function bar if $json->action is foo
+    # the problem is that passing arguments would be realtive opaque
+    # in terms of maintenance. 
     switch ( $json->{'action'} ) {
 	case /clibeat/i {
 	    return 1;
@@ -669,6 +682,8 @@ sub listExaRoutes {
     return encode_json(\%exablocks)
 }
 
+# send the requested route or action to the ExaBGP server
+# via the ExaBGP Interface
 sub sendtoExaBgpInt {
     my $child   = shift;
     my $request = shift;
@@ -676,6 +691,9 @@ sub sendtoExaBgpInt {
     
     #delete one blackhole route
     my $exa_socket = &openExaSocket;    #create ExaBGP interface socket
+    if ($exa_socket == -1) {
+	print $child "Could not connect to ExaBGP interface\n";
+    }
     if ( !&authorize($exa_socket) ) {   #authorize this process
 	$logger->error("ExaBGP authorization failed");
 	print $child "Authorization failed\n";
@@ -706,10 +724,9 @@ sub listExistingBH {
     my @name_array;
     my @results;
 
-    if ( $dbh =~ /Err/ ) {
-	my $error = $dbh;
+    if ( $dbh == -1 ) {
 	$dbh->disconnect();
-	return ($error);
+	return "Could not connect to database";
     }
 
     # build an array that lets us translate the customer_id into the
@@ -783,11 +800,13 @@ sub DBSocket {
 	. $config->{database}->{host}
         . ";port="
 	. $config->{database}->{port};
-    $dbh = DBI->connect($data_source, $config->{database}->{user},
-			$config->{database}->{password},
-			{'RaiseError' => 0, 'PrintError' => 0})
-	or die "This failed";
-    
+    eval {$dbh = DBI->connect($data_source, $config->{database}->{user},
+			      $config->{database}->{password},
+			      {'RaiseError' => 0, 'PrintError' => 0})};
+    if ($@) {
+	$logger->error("Could not open socket to database: $@");
+	return -1;
+    }
     return $dbh;
 }
 
@@ -837,11 +856,23 @@ sub blackHole {
     }
     
     # everything worked so send the request
-    print $srv_socket $request;
+    use Time::HiRes qw(time);
+    my $start = time();
+    print $srv_socket $request . "\n";
+    my $mid = time();
     
     # wait for a result
-    $srv_socket->read( $status, 32768 );    # read to 32k or the end of line
+    $status = <$srv_socket>;
+    chomp $status;
+    
+    my $end = time();
 
+    my $send = sprintf("%.2f", $mid - $start);
+    my $wait = sprintf("%.2f", $end - $mid);
+    my $tot = sprintf("%.2f", $end - $start);
+    
+    $logger->debug("Send; $send, wait; $wait, total; $tot");
+    
     # we can get multiple responses
     # -2 = encrypt failure on remote
     # -3 = decrypt failure on remote
@@ -857,6 +888,7 @@ sub blackHole {
 	    return -5;
 	}
     }
+    $logger->debug("Received $status");
     
     #decrypt whatever we received
     $status = decrypt($status);
@@ -917,6 +949,11 @@ sub editRouteInDB {
     
     # get a socket to the database
     my $dbh   = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     my $query = "SELECT bh_route FROM bh_routes WHERE bh_index = ?";
     my $sth   = $dbh->prepare($query);
     $sth->bind_param( 1, $json->{'bh_index'} );
@@ -998,6 +1035,12 @@ sub addRouteToDB {
     my $query;
     my $sth;
     my $status = 1; #assume that it will work
+
+    #make sure we can access the DB
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
     
     #    local $dbh->{TraceLevel} = "3|SQL";
     $query = "INSERT INTO bh_routes
@@ -1041,8 +1084,13 @@ sub updateCustomer {
     my %block_hash;
     
     # get the socket
+
     my $dbh = &DBSocket;
-    
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     # we need to convert the CSV values to arrays
     my @asns = split( ",", $json->{'customer-asns'} );
     map { s/^\s+|\s+$//g; } @asns;
@@ -1092,6 +1140,11 @@ sub addCustomer {
     
     # get the socket
     my $dbh = &DBSocket;
+
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
     
     # we need to convert the CSV values to arrays
     my @asns = split( ",", $json->{'customer-asns'} );
@@ -1132,7 +1185,12 @@ sub updateUser {
     my $json = shift;
     my $role_insert;
     my $role_active;
-    my $dbh   = &DBSocket();
+    my $dbh = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     my $query = "UPDATE bh_users 
 	     	 SET    bh_user_name = ?,
                         bh_user_fname = ?,
@@ -1204,6 +1262,11 @@ sub addUser {
     print "initial password is $newPassword\n";
     my $passhash = password_hash( $newPassword, PASSWORD_BCRYPT );
     my $dbh = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     $logger->debug( "AddUser inbound data: " . objectToString($json) );
     my $query = "INSERT INTO bh_users 
 		             (bh_user_name, bh_user_fname, bh_user_lname, 
@@ -1248,17 +1311,10 @@ sub addUser {
 	],
 	body => $text,
 	);
-    my $sender = Email::Send->new(
-	{
-	    mailer      => 'mailer1.psc.edu',
-	    mailer_args => [
-		port     => '465',
-		username => 'rapier',
-		password => 'IH8tftsm!',
-		]
-	}
-	);
-    eval { $sender->send($email) };
+    eval { sendmail($email) };
+    if ($@) {
+	$logger->error("Problem sending email: $@");
+    }
     $logger->info("In addUser - Sent mail to $target_email");
     return "Success";
 }
@@ -1270,6 +1326,10 @@ sub resetPassword {
     
     print "New pass is $newPassword\n";
     my $dbh = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
     
     # this essentially confirms that the user exists before we try to
     # do any changes to the database
@@ -1327,28 +1387,10 @@ sub resetPassword {
 	],
 	body => $text,
 	);
-    my $sender = Email::Send->new(
-	{
-	    mailer      => 'mailer1.psc.edu',
-	    mailer_args => [
-		port     => '465',
-		username => 'rapier',
-		password => 'IH8tftsm!',
-		]
-	}
-	);
-    eval { $sender->send($email) };
-    
-	#    try {
-	#	Email::Stuffer->from      ("blackholesun\@psc.edu")
-	#	              ->to        ($email)
-	#	              ->cc        ("rapier\@psc.edu")
-	#	              ->subject   ("Password reset for Black Hole Sun")
-	#	              ->text_body ($text)
-	#	              ->send;
-	#   } catch {
-	#	return ("Failed to send email to user\n");
-	#   };
+    eval { sendmail($email) };
+    if ($@) {
+	$logger->error("Problem sending email: $@");
+    }
     $logger->info("Supposedly sent the mail to $email");
     return "Success";
 }
@@ -1360,6 +1402,10 @@ sub changePassword {
     my $json     = shift @_;
     my $passhash = password_hash( $json->{'npass1'}, PASSWORD_BCRYPT );
     my $dbh      = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
     
     # $dbh->trace(1); #enable tracing for debug purposes
     my $query = "UPDATE bh_users
@@ -1387,6 +1433,11 @@ sub changePassword {
 sub deleteUser {
     my $json  = shift @_;
     my $dbh   = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     my $query = "DELETE FROM bh_users
 		 WHERE       bh_user_id = ?";
     my $sth = $dbh->prepare($query);
@@ -1406,6 +1457,11 @@ sub deleteUser {
 sub deleteCustomer {
     my $json  = shift @_;
     my $dbh   = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     my $query = "DELETE FROM bh_customers
 		 WHERE       bh_customer_id = ?";
     my $sth = $dbh->prepare($query);
@@ -1461,7 +1517,11 @@ sub pushChanges {
     # get the list of *active* routes from the database
     my $sth;
     my $dbh = &DBSocket;
-    
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     # local $dbh->{TraceLevel} = "3|SQL";
     my $query = "SELECT bh_route 
                  FROM   bh_routes
@@ -1533,6 +1593,11 @@ sub customerOnlyRoutes {
     
     #first we grab the set of routes that the customer has control over
     my $dbh   = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Could not access the database.";
+    }
+
     my $query = "SELECT bh_customer_blocks
                  FROM 	bh_customers
 		 WHERE 	bh_customer_id = ?";
@@ -1604,6 +1669,11 @@ sub updateloop {
     my $pid = fork();
     if ( $pid == 0 ) {
 	my $dbh = &DBSocket;
+	#this isn't seen by the user so just skip it
+	if ($dbh == -1) {
+	    $dbh->disconnect();
+	    return -1;
+	}
 	
 	# this query finds all of the active routes where the difference
 	# between the start time and the current time is greater than the
@@ -1758,6 +1828,11 @@ sub routeModNotification {
     my @emails;
     my $email;
     my $dbh = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return "Cannot access the database";
+    }
+    
     $logger->error("In routeModNotification");
     
     my $query = "SELECT bh_user_email
@@ -1828,17 +1903,10 @@ sub routeModNotification {
 		],
 	body => $text,
 	);
-    my $sender = Email::Send->new(
-	{
-	    mailer      => 'mailer.psc.edu',
-	    mailer_args => [
-		port     => '465',
-		username => 'rapier',
-		password => 'IH8tftsm!',
-		]
-	}
-	);
-    eval { $sender->send($notice) };
+    eval { sendmail($notice) };
+    if ($@) {
+	$logger->error("Problem sending email: $@");
+    }
     $logger->info("In modRouteNotify - Sent route notification email");
     return "Success";
 }
@@ -1849,6 +1917,11 @@ sub customerLookup {
     my $customer_id = shift @_;
     my $name;
     my $dbh = &DBSocket();
+    if ($dbh == -1) {
+	$dbh->disconnect();
+	return -1;
+    }
+
     my $query = "SELECT bh_customer_name 
                  FROM   bh_customers
 		 WHERE   bh_customer_id = ?";

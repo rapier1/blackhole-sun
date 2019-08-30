@@ -1,0 +1,53 @@
+This was developed under perl v5.28.1. We will not provide any guarantees 
+that it will work as adverstised under different versions of perl. 
+
+For the exabgp interface you will need the following 
+perl modules:
+
+IO::Socket::INET
+IO::Socket::Timeout
+CryptX
+Crypt::PK::RSA
+Crypt::PK::DH
+Crypt::Mode::CTR
+Crypt::Random
+Config::Tiny
+Getopt::Std
+Data::Dumper
+Capture::Tiny 
+Log::Log4perl
+
+cpan install IO::Socket::INET IO::Socket::Timeout CryptX Crypt::PK::RSA \
+             Crypt::PK::DH Crypt::Mode::CTR Crypt::Random Config::Tiny \
+             Getopt::Std Data::Dumper Capture::Tiny Log::Log4perl 
+
+For the client (processing engine) you will need these
+perl modules:
+
+IO::Socket::INET
+IO::Socket::Timeout
+CryptX
+Crypt::PK::RSA
+Crypt::PK::DH
+Crypt::Mode::CTR
+Crypt::Random
+Try::Tiny
+Config::Tiny
+Getopt::Std
+Data::Dumper
+JSON
+Switch
+DBI
+Net::Netmask
+Scalar::Util
+App::Genpass 
+Email::Sender::Simple
+Email::Simple
+Email::Simple::Creator
+
+cpan install IO::Socket::INET IO::Socket::Timeout CryptX \ 
+             Crypt::PK::RSA Crypt::PK::DH  Crypt::Mode::CTR \
+             Crypt::Random Config::Tiny Getopt::Std Data::Dumper \
+             JSON Switch DBI Net::Netmask Scalar::Util \
+             App::Genpass  Email::Sender::Simple Email::Simple \
+             Email::Simple::Creator

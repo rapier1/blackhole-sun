@@ -49,14 +49,15 @@ function getDatabaseHandle () {
 	try {
 		$dbh = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
 	} catch (Exception $e) {
-		/* TODO: need better reporting here. */
-		print "Failed to connect $e->getMessage()";
+		print "Failed to connect to database " . $e->getMessage();
+        print "<br>The database process might not be running.";
+        exit;
 	};
 	return $dbh;
 }
 
 /* confirm user input against the db value */
-	function confirmPass($password) {
+function confirmPass($password) {
 	$dbh = getDatabaseHandle();
 	$stmnt = $dbh->prepare("SELECT bh_user_pass
                             FROM bh_users
@@ -154,7 +155,7 @@ function sendToProcessingEngine ($request) {
     if (!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
         $errorcode = socket_last_error();
         $errormsg = socket_strerror($errorcode);
-        return "I cowardly refused to create a socket: [$errorcode], $errormsg\n";
+        return "Unable to create a socket for the processing engine: [$errorcode], $errormsg\n";
     }
     /* connect to the local processing engine (client side interface to exabgp)*/
     if (! socket_connect($sock, EXASERVER_CLIENTSIDE, EXASERVER_CLIENTPORT)) {

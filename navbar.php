@@ -1,44 +1,50 @@
 <?php 
+/* load the javascript to handle the server status fun 
+ * note this is dependent on jquery already being loaded
+ */
+print "<script src='./heartbeat.js'></script>";
+
 /* we are defining all of the nav bar buttons we will be using here
  * an identifier on each page will indicate which set of buttons
  * we should display
  */
-/* load the javascript to handle the server status fun */
-print "<script src='./heartbeat.js'></script>";
 
 $logout_btn = "<p class = 'navbar-right navbar-btn'> <button id='logout'
 		  onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] .
-	          "/blackholesun/login.php'\" type='button' 
+	      "/blackholesun/login.php'\" type='button' 
                   class='btn btn-sm btn-primary'>Log Out</button></p>";
 $login_btn = "<p class = 'navbar-right navbar-btn'> <button id='login'
 		 onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] .
-	         "/blackholesun/login.php'\" type='button' 
+	     "/blackholesun/login.php'\" type='button' 
                  class='btn btn-sm btn-primary'>Log In</button></p>";
 $user_management_btn =  "<p class='navbar-right navbar-btn'><button id='userManagement'
                             onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME'] .
-			    "/blackholesun/usermanagement.php'\"  type='button'
+			"/blackholesun/usermanagement.php'\"  type='button'
                             class='btn btn-sm btn-primary'>Users</button></p>";
 $customers_btn =  "<p class='navbar-right navbar-btn'><button id='customers'
                       onClick=\"window.location='http://" . $_SERVER ['SERVER_NAME'] .
-		      "/blackholesun/customers.php'\"  type='button'
+		  "/blackholesun/customers.php'\"  type='button'
                       class='btn btn-sm btn-primary'>Customers</button></p>";
 $account_btn = "<p class='navbar-right navbar-btn'> <button id='account' 
                    onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] .
-	           "/blackholesun/accountmgmt.php'\" type='button' 
+	       "/blackholesun/accountmgmt.php'\" type='button' 
                    class='btn btn-sm btn-primary'>Account</button></p>";
 $routes_btn = "<p class='navbar-right navbar-btn'><button id='routeList' 
                   onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] .
-	          "/blackholesun/routes.php'\" type='button' 
+	      "/blackholesun/routes.php'\" type='button' 
                   class='btn btn-sm btn-primary'>Route List</button></p>";
 $new_user_btn = "<p class='navbar-right navbar-btn'><button id='newUser'
                     onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] . 
-	            "/blackholesun/newuser.php'\" type='button'
+	        "/blackholesun/newuser.php'\" type='button'
                     class='btn btn-sm btn-primary'>New User</button></p>";
 $new_customer_btn = "<p class='navbar-right navbar-btn'> <button id='newCustomer'
 			onClick=\"window.location='http://" . $_SERVER['SERVER_NAME'] .
-		        "/blackholesun/newcustomer.php'\" type='button' 
+		    "/blackholesun/newcustomer.php'\" type='button' 
                         class='btn btn-sm btn-primary'>New Customer</button></p>";
 
+/* if the user is logged in then we want to display their name and
+ * affiliation on the nav bar
+ */
 if (! empty($_SESSION['username'])) {
     $user_name = $_SESSION['username'] . " @ " . $_SESSION['bh_customer_name'];
 } else {
@@ -90,8 +96,10 @@ if (! empty($_SESSION['username'])) {
     /* else print out a login button */
     print $login_btn;
 }
+
 /* we aren't explictly checking for a log in here
  * because they cant have a session without logging in
+ * --> page_id *must* be defined before this file is loaded <--
  */
 if ($_SESSION ['bh_user_role'] == 4) {
     if ($page_id == "routes") {
@@ -133,8 +141,8 @@ if ($_SESSION ['bh_user_role'] == 4) {
 	print $routes_btn;
 	print $user_management_btn;
     }
-
 }
+/* close the nav container */
 print "	    </div>
 	    <!--/.nav-collapse -->
 	</div>

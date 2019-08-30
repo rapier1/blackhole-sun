@@ -34,15 +34,9 @@
 # by this script and parsed for sucess or failure and, additionally capture any other
 # requested information (such as the list of black hole routes known by the ExaBGP service)
 
-# Components: forking TCP server ?
-#             RSA and DH methods
-#             SSL methods
-
 use strict;
 use warnings;
 use JSON;
-use Sys::Syslog qw(:standard :macros);
-use IO::Socket::SSL qw(inet4);
 use IO::Socket::INET;
 use IO::Socket::Timeout;
 use CryptX;
@@ -50,7 +44,6 @@ use Crypt::PK::RSA;
 use Crypt::PK::DH qw(dh_shared_secret);
 use Crypt::Mode::CTR;
 use Crypt::Random qw(makerandom);
-use Try::Tiny;
 use Config::Tiny;
 use Getopt::Std;
 use Data::Dumper;
@@ -326,25 +319,25 @@ sub processInput {
     $logger->debug("in processInput with route: " . $request->{'route'} . " and action: " . $request->{'action'});
     if ($request->{'action'} eq "add") {
 	$response = encrypt(&addBHRoute($request->{'route'}));
-	print $cli_socket $response;
+	print $cli_socket $response . "\n";
 	return;
     }
 
     if ($request->{'action'} eq "dump") {
 	$response = encrypt(&dumpRoutes());
-	print $cli_socket $response;
+	print $cli_socket $response . "\n";
 	return;
     }
     
     if ($request->{'action'} eq "del") {
 	$response = encrypt(&withdrawRoutes($request->{'route'}));
-	print $cli_socket $response;
+	print $cli_socket $response . "\n";
 	return;
     }
 
     if ($request->{'action'} eq "exabeat") {
 	$response = encrypt("Success");
-	print $cli_socket $response;
+	print $cli_socket $response . "\n";
 	return;
     }
 
@@ -352,7 +345,7 @@ sub processInput {
 	if ( (-e $config->{'exabgppipe'}->{'pipein'}) &&
 	     (-e $config->{'exabgppipe'}->{'pipeout'}) {
 	    $response = encrypt("Success");
-	    print $cli_socket $response;
+	    print $cli_socket $response ."\n";
 	    return;
 	} 
     }
@@ -372,7 +365,7 @@ sub processInput {
     } else {
 	$response = encrypt("-2");
     }
-    print $cli_socket $response;
+    print $cli_socket $response . "\n";
 }
  
 sub addBHRoute {
@@ -446,8 +439,8 @@ sub startServer {
 		close ($child);
 	    }
 	    IO::Socket::Timeout->enable_timeouts_on($child);
-	    $child->read_timeout(1);
-	    $child->write_timeout(1);
+	    $child->read_timeout(0.1);
+	    $child->write_timeout(0.1);
 	    if ($pid == 0) {
 		my $response = <$child>;
 		#pre auth do not decrypt
@@ -462,10 +455,11 @@ sub startServer {
 		if ($authorized == 1) {
 		    while (defined (my $buf = <$child>)) {
 			# the input is a json object
+			chomp $buf;
 			$buf = decrypt($buf);
 			# if encryption fails $buf is -1
 			# pass that to processInput and deal with it there
-			chomp $buf;
+			chomp $buf; #incase the decrypted message has a newline
 			
 			if ($buf =~ /quit/) {
 			    print $child encrypt("Quitting"). "\n";

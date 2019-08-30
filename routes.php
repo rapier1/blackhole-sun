@@ -24,20 +24,6 @@
  * so the intial pass will simply take a route to be blackholed
  * and pass it to the processing engine
  */
-
-/*
- * TODO
- * DONE: Add a comments field so people can explain why they are entering a route
- * DONE: Add a customer field built form the DB so a higher level user or admin can assign route
- * visbility to another customer
- * DONE: Add an initiator field to the database and as a value for routes. This would allow
- * an admin type to create a route for another customer. This will give us the opportunity
- * to create read only routes. The customer can see the route but not edit it.
- * DONE: Add an option to make a route last forever. Need some special value for this.
- * Add email notifcations for when routes are added. This would go an email defined by the
- * admin and any users that are asscoiated with that specific customer
- * DONE: cancel button on all sections
- */
 ?>
 
 

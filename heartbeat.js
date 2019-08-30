@@ -13,10 +13,15 @@ $(document).ready(function () {
     //changed my mind as it's a lot of calls just get it on page load
 });
 
+// use jquery to send an ajax request
+// if the request is successful we get 1 as a result
 function getHeartbeat (heartbeat) {
     $.post('./heartbeat.php', {heartbeat_type: heartbeat}, function (data) {handleResult(data, status, heartbeat);});
 }
 
+// functionto handle the results of the ajax request
+// essentially we swap out the existing image with
+// a new one. 
 function handleResult (data, status, heartbeat) {
     if (heartbeat == 'clibeat') {
 	if (data == 1) {
