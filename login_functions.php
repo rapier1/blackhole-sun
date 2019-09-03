@@ -47,43 +47,44 @@ function logIn($username, $password)
 		print "Failed to execute $e->GetMessage()";
 	}
 	$queryResult = $stmnt->fetch(PDO::FETCH_ASSOC); //returns FALSE if empty result
-	if (!$queryResult) //Did we find a match to the submitted username?
-	{
-	return 1;
+    //Did we find a match to the submitted username?
+	if (!$queryResult)  {
+        return 1;
 	}
-	else //found a username match, time to see if the password is correct
-	{
-	if (!password_verify($password, $queryResult["bh_user_pass"]) || ($queryResult["bh_user_active"] == 0)) //fail
-	{
+    //found a username match, time to see if the password is correct
+	else {
+        if (!password_verify($password, $queryResult["bh_user_pass"]) || ($queryResult["bh_user_active"] == 0)) {
 			return 1; //return 1 to notify password match failed
-	}
-	else //pass!
-	// Not sure I like all of this being set here. It hides the process from the login page.
-	// that said, the alternative would be to return all of this data and that's overly complicated.
-	{
-	//load relevant user info into the current session
-	$_SESSION["username"] = $username;
-		$_SESSION["bh_user_role"] = $queryResult["bh_user_role"];
-		$_SESSION["fname"] = $queryResult["bh_user_fname"];
-		$_SESSION["lname"] = $queryResult["bh_user_lname"];
-		$_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
-				$_SESSION["bh_customer_id"] = $queryResult["bh_user_affiliation"];
-				list($error, $_SESSION["bh_customer_name"]) = getName($queryResult["bh_user_affiliation"]);
-						if ($error == -1) {
+        }  else {
+            /* Not sure I like all of this being set here. 
+             * It hides the process from the login page.
+             * that said, the alternative would be to return all 
+             * of this data and that's overly complicated.
+             * load relevant user info into the current session
+             */
+            $_SESSION["username"] = $username;
+            $_SESSION["bh_user_role"] = $queryResult["bh_user_role"];
+            $_SESSION["fname"] = $queryResult["bh_user_fname"];
+            $_SESSION["lname"] = $queryResult["bh_user_lname"];
+            $_SESSION["bh_user_id"] = $queryResult["bh_user_id"];
+            $_SESSION["bh_customer_id"] = $queryResult["bh_user_affiliation"];
+            list($error, $_SESSION["bh_customer_name"]) =
+                     getName($queryResult["bh_user_affiliation"]);
+            if ($error == -1) {
                 print "Error: " . $_SESSION['bh_customer_name'] . " . Halting.";
-	}
-                		$_SESSION["timer"]= time();
-				if ($queryResult["bh_user_force_password"]) {
-				header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/changepass.php");
-				} elseif ($queryResult["bh_user_role"] == 4) {
-						header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/usermanagement.php");
+            }
+            $_SESSION["timer"]= time();
+            if ($queryResult["bh_user_force_password"]) {
+                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/changepass.php");
+            } elseif ($queryResult["bh_user_role"] == 4) {
+                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/usermanagement.php");
             } else {
-            header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/routes.php");
+                header("Location:http://". $_SERVER['SERVER_NAME'] ."/blackholesun/routes.php");
             }
             //die();
-            		return 0; //return 0 to notify password match success
-            }
-            }
+            return 0; //return 0 to notify password match success
+        }
+    }
 }//END logIn
 
 function getName($customer_id) {

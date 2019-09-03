@@ -61,6 +61,10 @@ function modalMessage(type, messageBody){
     $(modalID[type]).modal('show');
 }
 
+function genericModalWarning(msg) {
+	modalMessage('error', msg);
+}
+
 function userManagementFormInfo(flag, msg) {
     if (formSrc == "userManagement") {
 	if (flag == 0) {

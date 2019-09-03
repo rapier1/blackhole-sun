@@ -25,6 +25,10 @@
 
 include_once './private/functions.cfg';
 
+/* this automatically expires a user session if they haven't loaded a page
+ * in some period of time. This has to be included on every page 
+ * after the functions.php include is loaded
+ */
 function sessionTimer() {
 	$login_session_duration = DURATION_TIMER * 60; // DURATION_TIMER defined in functions.cfg
 	$current_time = time();
@@ -42,17 +46,29 @@ function sessionTimer() {
 
 /* generate a database handle */
 function getDatabaseHandle () {
-	//Create our Database Handler, $dbh
+	// Create our Database Handler, $dbh
 	// the DB variables are in the functions.cfg file. Not included in the git
 	// but it's just wrapper of php tags around the definitions for these variables.
 	ini_set('display_errors',1);
 	try {
 		$dbh = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USERNAME, DB_PASSWORD);
-	} catch (Exception $e) {
-		print "Failed to connect to database " . $e->getMessage();
-        print "<br>The database process might not be running.";
+	}
+    catch (Exception $e) {
+		$msg = "Failed to connect to database with error:" . $e->getMessage() . ". ";
+        $msg .= "The database process might not be running.";
+        print "<script type='text/javascript'>\n";
+        if (empty ($_SESSION)) {
+            /* this is likely happening from the login page */
+            print "alert('$msg');";
+            print "self.location='login.php';";
+        } else {
+            /* everywhere else a modal message shoudl work */
+            print "modalMessage('error', '" . $msg . "');";
+        }
+        print "</script>\n";
+        /* we have to exit now or php will try to process the dead handle */
         exit;
-	};
+	}
 	return $dbh;
 }
 
@@ -68,6 +84,9 @@ function confirmPass($password) {
     return (password_verify($password, $result["bh_user_pass"]));
 }
 
+/* this is a debig routine that automagically wraps the 
+ * var_dump in <pre> tags in a table
+ */
 function prewrap($text) {
 	print("<tr><td align='left'><table border=1><tr><td valign='top' align='left'><pre>");
     var_dump ($text);
@@ -178,6 +197,10 @@ function sendToProcessingEngine ($request) {
     return $buf;
 }
 
+/* this creates the widget used to change the user password
+ * normally it is hidden but is displayed when the user clicks on the
+ * change password button
+ */
 function changePasswordWidget () {
     $form  = "<form id='updatePassword' role='form' class='form-horizontal col-8' action='"  .
            htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";

@@ -102,7 +102,7 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
             <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
         <![endif]-->
     </head>
-
+    
     <body>
 	<nav class="navbar navbar-inverse navbar-fixed-top">
             <div class="container">
@@ -125,7 +125,8 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
         </nav>
 
 	<!-- MAIN Container for Login Form -->
-	<div name="container-main" class="container">
+    <?php include ("./modals.php"); ?>
+    <div name="container-main" class="container">
 	<div class="row starter-template">
 		<h1 class="text-center"> Log In </h1>
 	</div>
