@@ -1314,7 +1314,7 @@ sub addUser {
 	],
 	body => $text,
 	);
-    eval { sendmail($email), {transport => $transport}) };
+    eval { sendmail($email, {transport => $transport}) };
     if ($@) {
 	$logger->error("Problem sending email: $@");
     }
@@ -1389,7 +1389,7 @@ sub resetPassword {
 	],
 	body => $text,
 	);
-    eval { sendmail($email), {transport => $transport}) };
+    eval { sendmail($email, {transport => $transport}) };
     if ($@) {
 	$logger->error("Problem sending email: $@");
     }
@@ -1905,7 +1905,7 @@ sub routeModNotification {
 		],
 	body => $text,
 	);
-    eval { sendmail($notice), {transport => $transport}) };
+    eval { sendmail($notice, {transport => $transport}) };
     if ($@) {
 	$logger->error("Problem sending email: $@");
     }
