@@ -1,53 +1,143 @@
-This was developed under perl v5.28.1. We will not provide any guarantees 
-that it will work as adverstised under different versions of perl. 
+Installation:
 
-For the exabgp interface you will need the following 
-perl modules:
+1) Ensure that you have the latest version of the code base from
+   https://github.com/rapier1/blackhole-sun
 
-IO::Socket::INET
-IO::Socket::Timeout
-CryptX
-Crypt::PK::RSA
-Crypt::PK::DH
-Crypt::Mode::CTR
-Crypt::Random
-Config::Tiny
-Getopt::Std
-Data::Dumper
-Capture::Tiny 
-Log::Log4perl
+2) Ensure that you have a functional installation of php.
 
-cpan install IO::Socket::INET IO::Socket::Timeout CryptX Crypt::PK::RSA \
-             Crypt::PK::DH Crypt::Mode::CTR Crypt::Random Config::Tiny \
-             Getopt::Std Data::Dumper Capture::Tiny Log::Log4perl 
+3) Ensure that you have an instance of exbgp running on a *different*
+   host than you'll be using for the processing engine (aka client) and the web 
+   interface. Since exabgp is critical production infrastructure you want to 
+   ensure that you have that system as locked odwn as possible. That means
+   not have a web server running on that host. 
 
-For the client (processing engine) you will need these
-perl modules:
+4) Ensure that you have openssl installed
 
-IO::Socket::INET
-IO::Socket::Timeout
-CryptX
-Crypt::PK::RSA
-Crypt::PK::DH
-Crypt::Mode::CTR
-Crypt::Random
-Try::Tiny
-Config::Tiny
-Getopt::Std
-Data::Dumper
-JSON
-Switch
-DBI
-Net::Netmask
-Scalar::Util
-App::Genpass 
-Email::Sender::Simple
-Email::Simple
-Email::Simple::Creator
+5) Make sure that your sendmail subsystem is working correctly on the client host
 
-cpan install IO::Socket::INET IO::Socket::Timeout CryptX \ 
-             Crypt::PK::RSA Crypt::PK::DH  Crypt::Mode::CTR \
-             Crypt::Random Config::Tiny Getopt::Std Data::Dumper \
-             JSON Switch DBI Net::Netmask Scalar::Util \
-             App::Genpass  Email::Sender::Simple Email::Simple \
-             Email::Simple::Creator
+6) Ensure that you have a functional installation of perl. 
+   This was developed under perl v5.28.1. We will not provide any guarantees 
+   that it will work as adverstised under different versions of perl. 
+
+   For the exabgp interface you will need the following 
+   perl modules installed on that server. 
+
+   IO::Socket::INET
+   IO::Socket::Timeout
+   CryptX
+   Crypt::PK::RSA
+   Crypt::PK::DH
+   Crypt::Mode::CTR
+   Crypt::Random
+   Config::Tiny
+   Getopt::Std
+   Data::Dumper
+   Capture::Tiny 
+   Log::Log4perl
+
+   cpan install IO::Socket::INET IO::Socket::Timeout CryptX Crypt::PK::RSA \
+                Crypt::PK::DH Crypt::Mode::CTR Crypt::Random Config::Tiny \
+                Getopt::Std Data::Dumper Capture::Tiny Log::Log4perl 
+
+
+   For the client (processing engine) you will need these
+   perl modules:
+
+   IO::Socket::INET
+   IO::Socket::Timeout
+   CryptX
+   Crypt::PK::RSA
+   Crypt::PK::DH
+   Crypt::Mode::CTR
+   Crypt::Random
+   Try::Tiny
+   Config::Tiny
+   Getopt::Std
+   Data::Dumper
+   JSON
+   Switch
+   DBI
+   Net::Netmask
+   Scalar::Util
+   App::Genpass 
+   Email::Sender::Simple
+   Email::Simple
+   Email::Simple::Creator
+   PHP::Functions::Password
+
+   First install libssl-dev (or libssl-devel). Then install the required modules with
+
+   cpan install IO::Socket::INET IO::Socket::Timeout CryptX \ 
+                Crypt::PK::RSA Crypt::PK::DH  Crypt::Mode::CTR Math::Pari\
+                Crypt::Random Config::Tiny Getopt::Std Data::Dumper \
+                JSON Switch DBI Net::Netmask Scalar::Util \
+                App::Genpass Email::Sender::Simple Email::Simple \
+                Email::Simple::Creator PHP::Functions::Password
+
+   Note: Crypt::Random depends on Math::Pari which can be annoying to install.
+   Sorry about that. I'll be lokoing at replacing Crypt::Random with another random
+   number generator shortly. 
+
+7) Now that you have the environment set up you need to do the following on the client
+   webUI side
+
+   a) Copy the php, javascipt, and various subdirectories related to the WebUI to the 
+      an appropriate document directory on the webserver. 
+   b) Copy client.pl to /usr/local/bin. 
+   c) Copy log4perl.conf to /usr/local/etc
+   d) mkdir /usr/local/etc/blackholesun
+   e) mkidr /usr/local/etc/blackholesun/keys
+   f) copy client.cfg to /usr/local/etc/blackholesun
+   g) create a RSA public/private key pair for the client 
+      in /usr/local/etc/blackholesun/keys with 
+      'openssl genrsa -out client_rsa 2048'
+      'rsa -in client_rsa -outform PEM -pubout -out client_rsa.pub'
+   h) Load the db schema for blackhole sun into your SQL server
+      with mysql -u root -p < bhs.schema.sql
+   i) create an sql user for blackhole sun and grant data permissions
+   j) update the client.cfg file with the appropriate information
+   k) update the functions.cfg.php file with the appropriate information
+
+8) On the server side 
+  
+   a) prepend your exabgp.conf file with the following
+        process exabgp-interface {
+                run /usr/local/bin/exabgp_interface.pl;
+                encoder json;
+        }
+   b) copy exabgp_interface.pl to /usr/local/bin
+   c) mkdir /usr/local/etc/blackholesun
+   d) mkidr /usr/local/etc/blackholesun/keys
+   e) copy exabpg_interface.cfg to /usr/local/etc/blackholesun
+   f) create a RSA public/private key pair for the server 
+      in /usr/local/etc/blackholesun/keys with
+      'openssl genrsa -out server_rsa 2048'
+      'rsa -in server_rsa -outform PEM -pubout -out server_rsa.pub'
+   g) update eaxbgp_interface.cfg with the appropriate information
+
+9) Copy the client_rsa.pub key to /usr/local/etc/blackholesun/keys
+   on the exabgp host
+
+10) Copy the server_rsa.pub key to /usr/local/etc/blackholesun/keys
+    on the client host
+
+11) Restart the exabgp process on the exabgp host
+
+12) Start the processing engine (client) on the client host with
+    /usr/local/bin/client.pl -f /usr/local/etc/blackholesun/client.cfg
+
+
+
+Troubleshooting:
+
+Make sure that the firewall will allow connections between the two hosts. If the status lights
+indicate that the client is up but the interface or server is down this is a possible cause. 
+
+Make sure that the exabgp_interface process is running by getting the status of the exabgp server
+via systemctl status exabgp.
+
+Make sure that the blackholesun SQL user is configured correctly in the SQL process and
+the configuration files. 
+
+If the logs indicate a persistent problem with the cyrptographic routes (bad keys, corrupted packet, etc)
+make sure that you are using RSA keys and that you have valid public keys in the approrpriate locations.

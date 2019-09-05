@@ -45,6 +45,7 @@ use Net::Netmask;
 use Scalar::Util qw(looks_like_number);
 use App::Genpass;      # create random password
 use Email::Sender::Simple qw(sendmail);
+use Email::Sender::Transport::SMTP;
 use Email::Simple;
 use Email::Simple::Creator;
 
@@ -58,6 +59,7 @@ my %options  = ();
 my $config   = Config::Tiny->new();
 my $cfg_path = "/usr/local/etc/client.cfg";
 my $logger;    # this is the object for the logger it is instantianted later
+my $transport; #SMTP transport options 
 
 sub readConfig {
     if ( !-e $cfg_path ) {
@@ -144,6 +146,19 @@ sub validateConfig {
     }
     if ( !defined $config->{'duration'}->{'max'} ) {
 	$config->{'duration'}->{'max'} = 2160;
+    }
+
+    #check the email transport information
+    if (defined $config->{'email'}->{'host'} && defined $config->{'email'}->{'port'}) {
+	$transport = Email::Sender::Transport::SMTP->new
+	    ({host => $config->{'email'}->{'host'},
+	      port => $config->{'email'}->{'port'}
+	     });
+    }
+    if (defined $config->{'email'}->{'host'} && !defined $config->{'email'}->{'port'}) {
+	$transport = Email::Sender::Transport::SMTP->new
+	    ({host => $config->{'email'}->{'host'}
+	     });
     }
 }
 
@@ -1248,7 +1263,6 @@ sub addUser {
     my $json        = shift;
     my $genpass     = App::Genpass->new();
     my $newPassword = $genpass->generate(1);    #initial password for user
-    print "initial password is $newPassword\n";
     my $passhash = password_hash( $newPassword, PASSWORD_BCRYPT );
     my $dbh = &DBSocket();
     if ($dbh == -1) {
@@ -1300,7 +1314,7 @@ sub addUser {
 	],
 	body => $text,
 	);
-    eval { sendmail($email) };
+    eval { sendmail($email), {transport => $transport}) };
     if ($@) {
 	$logger->error("Problem sending email: $@");
     }
@@ -1313,7 +1327,6 @@ sub resetPassword {
     my $genpass     = App::Genpass->new();
     my $newPassword = $genpass->generate(1);
     
-    print "New pass is $newPassword\n";
     my $dbh = &DBSocket();
     if ($dbh == -1) {
 	$dbh->disconnect();
@@ -1376,7 +1389,7 @@ sub resetPassword {
 	],
 	body => $text,
 	);
-    eval { sendmail($email) };
+    eval { sendmail($email), {transport => $transport}) };
     if ($@) {
 	$logger->error("Problem sending email: $@");
     }
@@ -1892,7 +1905,7 @@ sub routeModNotification {
 		],
 	body => $text,
 	);
-    eval { sendmail($notice) };
+    eval { sendmail($notice), {transport => $transport}) };
     if ($@) {
 	$logger->error("Problem sending email: $@");
     }

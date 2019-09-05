@@ -136,7 +136,6 @@
             print "</td></tr></table>";
         }
     } elseif ($_POST['action'] == "resetPassword") {
-        print_r ($_SESSION);
         $json = json_encode($_POST) . "\n";
         $response = sendToProcessingEngine($json);
         if (preg_match("/Success/", $response)) {

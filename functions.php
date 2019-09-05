@@ -19,11 +19,8 @@
  * limitations under the License. *
  */
 
-/* TODO: prior to distribution any references to the private directory needs to be
- * shifted.
- */
-
-include_once './private/functions.cfg';
+/* load the variables */
+include_once './functions.cfg.php';
 
 /* this automatically expires a user session if they haven't loaded a page
  * in some period of time. This has to be included on every page 
@@ -84,7 +81,7 @@ function confirmPass($password) {
     return (password_verify($password, $result["bh_user_pass"]));
 }
 
-/* this is a debig routine that automagically wraps the 
+/* this is a debug routine that automagically wraps the 
  * var_dump in <pre> tags in a table
  */
 function prewrap($text) {
