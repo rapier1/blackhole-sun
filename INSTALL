@@ -130,14 +130,20 @@ Installation:
 
 Troubleshooting:
 
-Make sure that the firewall will allow connections between the two hosts. If the status lights
-indicate that the client is up but the interface or server is down this is a possible cause. 
+Make sure that the firewall will allow connections between the two hosts.
+If the status lights indicate that the client is up but the interface or
+server is down this is a possible cause. 
 
-Make sure that the exabgp_interface process is running by getting the status of the exabgp server
-via systemctl status exabgp.
+Make sure that the exabgp_interface process is running by getting the
+status of the exabgp server via systemctl status exabgp.
 
-Make sure that the blackholesun SQL user is configured correctly in the SQL process and
-the configuration files. 
+Make sure that the blackholesun SQL user is configured correctly in the
+SQL process and the configuration files. 
 
-If the logs indicate a persistent problem with the cyrptographic routes (bad keys, corrupted packet, etc)
-make sure that you are using RSA keys and that you have valid public keys in the approrpriate locations.
+If the logs indicate a persistent problem with the cyrptographic routes
+(bad keys, corrupted packet, etc) make sure that you are using RSA keys and that
+you have valid public keys in the approrpriate locations.
+
+If the webpage hangs after creating a new user, resetting a password, or modifying
+a route this might be a problem with the way mail service is configured. Please
+verify the settings. 
