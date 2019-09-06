@@ -109,12 +109,12 @@ function accountMgmtFormInfo(flag, msg) {
     }
 }
 
-function mainpageFormInfo(flag, msg) {
-    if (formSrc == "mainpage") {
-	if (flag == 1) {
+function routesFormInfo(flag, msg) {
+    if (formSrc == "routes") {
+	if (flag == 0) {
 	    modalMessage('success', msg);
 	}
-	if (flag == -1) {
+	if (flag == 1) {
 	    modalMessage('error', msg);
 	}
     }

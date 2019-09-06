@@ -86,7 +86,7 @@
     <?php
     include ("./modals.php");
     include ("./navbar.php");
-    $errFlag = "";
+    $errFlag = -1;
     $errMsg = "";
     $url = "";
     // prewrap ($_POST);
@@ -201,8 +201,8 @@
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doing here is using php to write javascript.
      // dirty!
-     print "modalSetFormSrc(\"customers\");\n";
-     print "customersFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
+     print "modalSetFormSrc('customers');\n";
+     print "customersFormInfo($errFlag, '$errMsg', $url);\n";
      ?>
     </script>
 </body>

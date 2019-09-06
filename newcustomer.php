@@ -78,7 +78,7 @@
     <?php
     include ("./modals.php");
     include ("./navbar.php");
-    $errFlag="";
+    $errFlag= -1;
     $errMsg="";
     $url = "";
     if ($_POST['action'] == "addCustomer") {
@@ -86,17 +86,17 @@
 	    $_POST['customer-asns'] = "";
 	}
 	$_POST['customer-asns'] = normalizeListInput($_POST['customer-asns']);
-
+	
 	if (!isset($_POST['customer-vlans'])) {
 	    $_POST['customer-vlans'] = "";
 	}
 	$_POST['customer-vlans'] = normalizeListInput($_POST['customer-vlans']);
-
+	
 	// first thing we need to do is validate the submitted
 	// IP addresses and CIDR blocks. I want to provide feedback on
 	// individual bad IPs as opposed to the entire submission
 	// so we split the incoming set of IP/CIDR and run it through a validator
-
+	
 	if(!isset($_POST['customer-blocks'])) {
 	    $errFlag = 1;
 	    $errMsg = "No customer address blocks defined!";
@@ -110,7 +110,7 @@
 		}
 	    }
 	}
-
+	
 	if ($errFlag != 1) {
             $json = json_encode($_POST);
             $response = sendToProcessingEngine($json);
@@ -131,7 +131,7 @@
     print $form;
     print "</td></tr></table>";
     ?>
-
+    
     <!-- modals handler -->
 
     <script>
@@ -139,8 +139,8 @@
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doing here is using php to write javascript.
      // dirty!
-     print "modalSetFormSrc(\"addCustomer\");\n";
-     print "addCustomerFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
+     print "modalSetFormSrc('addCustomer');\n";
+     print "addCustomerFormInfo($errFlag, '$errMsg', '$url');\n";
      ?>
     </script>
 </body>

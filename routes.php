@@ -171,7 +171,7 @@ $page_id = "routes";
 		    <input type="hidden" name="action" value="blackhole">
 		    <input type="submit" name="submit" value="Add BH Route">
 		</form>
-		<script>
+		<script type="text/javascript">
 		 document.getElementById("bh_startdate").valueAsDate = new Date();
 		 var hours = new Date().getHours();
 		 var minutes = new Date().getUTCMinutes();
@@ -239,8 +239,8 @@ $page_id = "routes";
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doing here is using php to write javascript.
      // dirty!
-     print "modalSetFormSrc(\"mainpage\");\n";
-     print "mainpageFormInfo(" . $_SESSION ['errFlag'] . ", \"" . $_SESSION ['errMsg'] . "\");\n";
+     print "modalSetFormSrc('routes');\n";
+     print "routesFormInfo(" . $_SESSION ['errFlag'] . ", \"" . $_SESSION ['errMsg'] . "\");\n";
      $_SESSION ['errFlag'] = 0;
      $_SESSION ['errMsg'] = "";
      ?>

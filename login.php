@@ -34,7 +34,7 @@ $inputs = array(
 $inputErrors = array(
     "bhUsername" => "",
     "bhPassword" => "");
-$errFlag = 0;
+$errFlag = -1;
 $errMsg = "";
 //END VARIABLE DECLARATIONS
 
@@ -114,59 +114,60 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
                         <span class="icon-bar"></span>
                     </button>
                     <div class="navbar-brand">BlackHole Sun: An ExaBGP Interface</div>
-                        </div>
-                        <div id="navbar" class="collapse navbar-collapse">
-                            <ul class="nav navbar-nav">
-                                <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
-				<li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
-                            </ul>
-                        </div><!--/.nav-collapse -->
-                </div> <!-- END nav container -->
+                </div>
+                <div id="navbar" class="collapse navbar-collapse">
+                    <ul class="nav navbar-nav">
+                        <li><a id="menu-home" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/about.php">About</a></li>
+			<li><a id="menu-faq" href="http://<?php echo $_SERVER['SERVER_NAME']?>/blackholesun/faq.php">FAQ</a></li>
+                    </ul>
+                </div><!--/.nav-collapse -->
+            </div> <!-- END nav container -->
         </nav>
-
+	
 	<!-- MAIN Container for Login Form -->
-    <?php include ("./modals.php"); ?>
-    <div name="container-main" class="container">
-	<div class="row starter-template">
+	<?php include ("./modals.php"); ?>
+	<div name="container-main" class="container">
+	    <div class="row starter-template">
 		<h1 class="text-center"> Log In </h1>
-	</div>
-	<div class="row">
+	    </div>
+	    <div class="row">
 		<div name="padding-left" id="padding-left" class="col-8"></div>
-
+		
 		<div name="loginSection" id="loginSection" class="col-2 starter-template">
-
-			<form id="loginForm" name="loginForm" class="form-horizontal col-6" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="post" role="form" class="form-horizontal">
-
-				<div class="form-group">
-					<label for="bhUsername">Username</label>
-					<input type="text" id="bhUsername" name="bhUsername" class="form-control">
-				</div>
-
-				<div class="form-group">
-					<label for="bhPassword">Password</label>
-					<input type="password" id="bhPassword" name="bhPassword" class="form-control">
-				</div>
-				<div class="form-group">
-					<input type="submit" value="Log In" class="btn btn-primary">
-				</div>
-			</form>
-
-			<p class="text-center"><a href="forgot.php">Forgot username or password?</a></p>
+		    
+		    <form id="loginForm" name="loginForm" class="form-horizontal col-6" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="post" role="form" class="form-horizontal">
+			
+			<div class="form-group">
+			    <label for="bhUsername">Username</label>
+			    <input type="text" id="bhUsername" name="bhUsername" class="form-control">
+			</div>
+			
+			<div class="form-group">
+			    <label for="bhPassword">Password</label>
+			    <input type="password" id="bhPassword" name="bhPassword" class="form-control">
+			</div>
+			<div class="form-group">
+			    <input type="submit" value="Log In" class="btn btn-primary">
+			</div>
+		    </form>
+		    
+		    <p class="text-center"><a href="forgot.php">Forgot username or password?</a></p>
 		</div>
-
+		
 		<div name="padding-right" id="padding-right" class="col-5"></div>
-	</div>
+	    </div>
 	</div> <!-- END main container -->
-
-</body>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-<script src="bootstrap/dist/js/bootstrap.min.js"></script>
-<script src="trmodals.js"></script>
-<script>
+	
+    </body>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="trmodals.js"></script>
+    <script>
      <?php
-        print "modalSetFormSrc(\"login\");";
-        print "loginFormInfo(".$errFlag.", \"".$errMsg."\");";
-    ?>
-</script>
+     print "modalSetFormSrc('login');\n";
+     print "loginFormInfo($errFlag, '$errMsg');\n";
+     ?>
+    </script>
 </html>
+n

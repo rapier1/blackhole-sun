@@ -95,7 +95,7 @@
     </td>
     </tr>
     <?php
-    $errFlag="";
+    $errFlag= -1;
     $errMsg="";
     $url = "";
     if ($_POST['action'] == "changePassword") {
@@ -133,8 +133,8 @@
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doign here is using php to write javascript.
      // dirty!
-     print "modalSetFormSrc(\"changePass\");\n";
-     print "changePassFormInfo(" . $errFlag . ", \"" . $errMsg . "\", \"" . $url . "\" );\n";
+     print "modalSetFormSrc('changePass');\n";
+     print "changePassFormInfo($errFlag, '$errMsg', '$url');\n";
      ?>
     </script>
     </table>
