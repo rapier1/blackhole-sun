@@ -90,7 +90,7 @@
     <nav class="container"> <!-- main body -->
 
     <?php
-    $errFlag = "";
+    $errFlag = -1;
     $errMsg = "";
     $admin_buttons = "";
     $cancelbutton = "</P></P><input action=\"action\" onclick=\"window.location = './usermanagement.php';
@@ -240,8 +240,8 @@
      // This has to be kept in the footers as we don't have the variable data yet.
      // by the way, what we are doign here is using php to write javascript.
      // dirty!
-     print "modalSetFormSrc(\"usermanagement\");";
-     print "userManagementFormInfo(".$errFlag.", \"".$errMsg."\");";
+     print "modalSetFormSrc('userManagement');\n";
+     print "userManagementFormInfo($errFlag, '$errMsg');\n";
      ?>
     </script>
 </div> <!-- main body-->
