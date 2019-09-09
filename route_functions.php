@@ -50,24 +50,24 @@ function confirmBH($data) {
 
     if (! is_int($data)) {
         /* we got a strange error back - likely from the database*/
-        $_SESSION['errFlag'] = -1;
+        $_SESSION['errFlag'] = 1;
         $_SESSION['errMsg'] = $data;
     }
 
     if ($data == 1) {
-        $_SESSION['errFlag'] = 1;
+        $_SESSION['errFlag'] = 0;
         $_SESSION['errMsg'] = "Route successfully added";
     }
     if ($data == -1) {
-        $_SESSION['errFlag'] = -1;
+        $_SESSION['errFlag'] = 1;
         $_SESSION['errMsg'] = "Invalid Route/IP Entered";
     }
     if ($data == -2) {
-	$_SESSION['errFlag'] = -1;
+	$_SESSION['errFlag'] = 1;
         $_SESSION['errMsg'] = "Non Numeric Duration Entered";
     }
     if ($data == -3) {
-        $_SESSION['errFlag'] = -1;
+        $_SESSION['errFlag'] = 1;
         $_SESSION['errMsg'] = "Duration Out Of Range (must be between 0 and 2160)";
     }
 }

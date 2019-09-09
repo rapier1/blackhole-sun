@@ -76,7 +76,7 @@ if (empty ( $_SESSION ["username"] )) {
 include ("./functions.php");
 include ("./route_functions.php");
 sessionTimer();
-$_SESSION ['errFlag'] = 0;
+$_SESSION ['errFlag'] = -1;
 $_SESSION ['errMsg'] = "";
 $page_id = "routes";
 ?>
@@ -145,19 +145,19 @@ $page_id = "routes";
 			    <?php
 			    if ($_SESSION ['bh_user_role'] != 1) {
 			    	list ( $error, $list ) = buildCustomerList ( NULL );
-			    	if ($error != - 1) {
+			    	if ($error != -1) {
 			    	    print "<td>$list</td>";
 			    	} else {
-			    	    $errFlag = - 1;
+			    	    $errFlag = 1;
 			    	    $errMsg = $list;
 			    	}
 			    } else {
 			    	list ( $error, $name ) = getCustomerNameFromID ( $_SESSION ['bh_customer_id'] );
-			    	if ($error != - 1) {
+			    	if ($error != -1) {
 			    	    print "<td>$name</td>";
 			    	    print "<input type=hidden name='bh_customer_id' value='" . $_SESSION ['bh_customer_id'] . "'/>";
 			    	} else {
-			    	    $errFlag = - 1;
+			    	    $errFlag = 1;
 			    	    $errMsg = $name;
 			    	}
 			    }
@@ -205,12 +205,12 @@ $page_id = "routes";
 			list ( $validRouteFlag, $message, $normalized ) =
 			    validateRoute ( $_POST ['bh_route'], $_SESSION ['bh_customer_id'] );
 			if ($validRouteFlag != 1) {
-			    $_SESSION ['errFlag'] = -1;
+			    $_SESSION ['errFlag'] = 1;
 			    $_SESSION ['errMsg'] = $message;
 			}
 			$_POST ['bh_route'] = $normalized;
 		    }
-		    if ($_SESSION ['errFlag'] != -1) {
+		    if ($_SESSION ['errFlag'] != 1) {
 			/*
 			 * send the command to a function that will
 			 * determine the next set of routines to run in
@@ -241,7 +241,7 @@ $page_id = "routes";
      // dirty!
      print "modalSetFormSrc('routes');\n";
      print "routesFormInfo(" . $_SESSION ['errFlag'] . ", \"" . $_SESSION ['errMsg'] . "\");\n";
-     $_SESSION ['errFlag'] = 0;
+     $_SESSION ['errFlag'] = -1;
      $_SESSION ['errMsg'] = "";
      ?>
     </script>
