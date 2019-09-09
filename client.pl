@@ -1563,8 +1563,10 @@ sub pushChanges {
     }
     
     my %route;
+    my $delcount = 0;
+    my $addcount = 0;
+
     foreach my $exa ( keys %exablocks ) {
-	
 	#check any protected routes
 	if ( defined $protected{$exa} ) {
 	    next;
@@ -1573,6 +1575,7 @@ sub pushChanges {
 	    $logger->info("$exa is not in database: deleting");
 	    $route{'bh_route'} = $exa;
 	    sendtoExaBgpInt( "", \%route, "del" );
+	    $delcount++;
 	}
     }
     
@@ -1581,9 +1584,10 @@ sub pushChanges {
 	    $logger->info("$db is not in exabgp: adding");
 	    $route{'bh_route'} = $db;
 	    sendtoExaBgpInt( "", \%route, "add" );
+	    $addcount++;
 	}
     }
-    return 1;
+    return "Success. Deleted $delcount excess routes from Exabgp and added $addcount missing routes";
 }
 
 # take an incoming list of routes
@@ -1839,7 +1843,8 @@ sub routeModNotification {
     
     my $query = "SELECT bh_user_email
                  FROM   bh_users
-		 WHERE  bh_user_affiliation = ?";
+		 WHERE  bh_user_affiliation = ?
+                 AND    bh_user_active = 1";
     my $sth = $dbh->prepare($query);
 
     $sth->bind_param(1, $route->{'bh_customer_id'});
@@ -1859,7 +1864,8 @@ sub routeModNotification {
     # now we have to get the email of all of the people with a user_role of 3 or 4
     $query = "SELECT bh_user_email
               FROM   bh_users
-	      WHERE  bh_user_role = 3 OR bh_user_role = 4";
+	      WHERE  (bh_user_role = 3 OR bh_user_role = 4)
+              AND    bh_user_active = 1";
     $sth = $dbh->prepare($query);
     $sth->execute();
     $sth->bind_col(1, \$email);

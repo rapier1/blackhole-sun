@@ -203,23 +203,26 @@ $page_id = "routes";
 		    
 		    if ($_POST ['action'] == 'blackhole') {
 			list ( $validRouteFlag, $message, $normalized ) =
-			    validateRoute ( $_POST ['bh_route'], $_SESSION ['bh_customer_id'] );
+			    validateRoute ($_POST ['bh_route'], $_SESSION ['bh_customer_id']);
 			if ($validRouteFlag != 1) {
 			    $_SESSION ['errFlag'] = 1;
 			    $_SESSION ['errMsg'] = $message;
 			}
 			$_POST ['bh_route'] = $normalized;
 		    }
+		    /* we haven't generated any errors validating the input*/
 		    if ($_SESSION ['errFlag'] != 1) {
 			/*
 			 * send the command to a function that will
 			 * determine the next set of routines to run in
 			 * order to get the data.
 			 */
-			$request = json_encode ( $_POST ) . "\n";
-			$response = sendToProcessingEngine ( $request );
-			/* hopefully we have a reponse */
-			parseResponse ( $_POST ['action'], $response);
+			$request = json_encode ($_POST) . "\n";
+			/* send the request out and get the response */
+			$response = sendToProcessingEngine ($request);
+			/* hopefully we have a reponse so figure out what to do with it*/
+			parseResponse ($_POST ['action'], $response);
+			/* if the action is to add/edit a route then fire off notification mail */
                         if ($_POST['action'] == 'blackhole') {
                             list ($result, $msg) = emailNotification($request);
                             if ($result != 1) {

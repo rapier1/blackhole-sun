@@ -37,8 +37,14 @@ function parseResponse ($action, $data) {
 	case 'getexaroutes':
 	    listExaRoutes($data);
 	    break;
-	case 'deleteselection':
-	case 'confirmbhdata':
+	case 'pushchanges':
+	    if (preg_match("/Success/", $data)) {
+		$_SESSSION['errFlag'] = 0;
+	    } else {
+		$_SESSION['errFlag'] = 1;
+	    }
+	    $_SESSION['errMsg'] = $data;
+	    break;
 	case 'quit':
 	    break;
     }
