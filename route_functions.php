@@ -145,16 +145,16 @@ function buildTableJS ($type, $table) {
 	    obj = JSON.parse(data);
         modalSetFormSrc('routes');
 	    if (obj.results == 'Success') {
-		    routesFormInfo(0, 'Route updated');
+		    routesFormInfo(0, 'Route successfully updated');
 	    } else {
 		    if (obj.results == '-1') {
-		        error = 'Invalid route';
+		        error = 'Invalid route or IP entered.';
 		    } else if (obj.results == '-2') {
-		        error = 'Non numeric duration';
+		        error = 'Non numeric duration entered.';
 		    } else if (obj.results == '-3') {
-		        error = 'Duration out of bounds';
+		        error = 'Duration out of bounds (must be betweem 0 and 2160).';
 		    } else {
-		       error = 'Unknown error';
+		       error = 'Unknown error. This is most unexpected.';
 		    }
 		    // on a failure we should find some way to revert to the prior values
             routesFormInfo(1, error);
@@ -163,7 +163,8 @@ function buildTableJS ($type, $table) {
 	},
 	// on a failure we should find some way to revert to the prior values
 	onFail(jqXHR, textStatus, errorThrown) {
-	    alert('fail! ' + errorThrown  + ' : ' + textStatus);
+        modalSetFormSrc('routes');
+	    routesFormInfor(1, 'fail! ' + errorThrown  + ' : ' + textStatus);
 	    return;
 	},
 	columns: {

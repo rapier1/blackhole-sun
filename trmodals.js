@@ -24,7 +24,7 @@ modalText = {'warn': "#warnModalText", 'error': "#errorModalText", 'success': "#
 
 var formSrc = "";
 
-$("form").submit(function(e) {
+/* $("form").submit(function(e) {
     var ref = $(this).find("[monkey]");
     $(ref).each(function(){
         if ( $(this).val() == '' )
@@ -36,7 +36,9 @@ $("form").submit(function(e) {
         }
     });  return true;
 });
+*/
 
+/*
 function toggle_vis(id) {
     var e = document.getElementById(id);
     if (e.style.display == 'block')
@@ -44,6 +46,7 @@ function toggle_vis(id) {
     else
 	e.style.display = 'block';
 }
+*/
 
 /* we use this to set a value indicating which page we are coming from 
  * this ensures that the function called is appropriate for that page
@@ -165,6 +168,7 @@ function changePassFormInfo(flag, msg, url) {
     }
 }
 
+/*
 function adminFormInfo(flag, msg, type){
     if( formSrc == "admin" ){ //if data sent from this form
         if(flag == 1){
@@ -186,6 +190,7 @@ function adminFormInfo(flag, msg, type){
 	}
     }
 }
+*/
 
 function loginFormInfo(flag, msg){
     if( formSrc == "login" ){ //if data sent from this form
