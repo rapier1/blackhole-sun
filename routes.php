@@ -35,7 +35,7 @@
 <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
 <meta name="description" content="BlackHole Sun">
 <meta name="author" content="Pittsburgh Supercompuing Center">
-<link rel="icon" href="./favicon.ico">
+<link rel="icon" href="./icons/favicon.ico">
 <title>BlackHole Sun</title>
 <link href="jquery/datatables.css" rel="stylesheet">
 <!-- Bootstrap core CSS -->

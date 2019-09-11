@@ -17,13 +17,13 @@
  * limitations under the License. *
  */
 
-// change these to the approrpiate values for your mysql installation
-define ('DB_HOST', 'xxxx');
-define ('DB_USERNAME', 'xxxx');
-define ('DB_PASSWORD','xxxx');
-define ('DB_NAME', 'xxxx');
+// change these to the appropriate values for your mysql installation
+define ('DB_HOST', 'xxxx'); // where your sql install lives
+define ('DB_USERNAME', 'xxxx'); // username for the database - not root!
+define ('DB_PASSWORD','xxxx'); // password for that user
+define ('DB_NAME', 'xxxx'); // name of the blackholesun database
 define ('DURATION_TIMER', 10); // minutes of inactivity
 define ('EXASERVER_CLIENTSIDE', 'localhost'); // where the exabgp client interface lives
-define ('EXASERVER_CLIENTPORT', '20202'); //Its port
+define ('EXASERVER_CLIENTPORT', '20202'); // Its port
 define ('EXASERVER_CLIENTBUFSIZ', '64000');// how much data to read into the incoming buffer
 ?>

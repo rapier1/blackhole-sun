@@ -84,24 +84,25 @@ Installation:
    webUI side
 
    a) Copy the php, javascipt, and various subdirectories related to the WebUI to the 
-      an appropriate document directory on the webserver. 
+      an appropriate document directory on the webserver. e.g /var/www/html/blackholesun
    b) Copy client.pl to /usr/local/bin. 
    c) Copy log4perl.conf to /usr/local/etc
    d) mkdir /usr/local/etc/blackholesun
    e) mkidr /usr/local/etc/blackholesun/keys
-   f) copy client.cfg to /usr/local/etc/blackholesun
-   g) create a RSA public/private key pair for the client 
+   f) Copy client.cfg to /usr/local/etc/blackholesun
+   g) Create a RSA public/private key pair for the client 
       in /usr/local/etc/blackholesun/keys with 
       'openssl genrsa -out client_rsa 2048'
       'rsa -in client_rsa -outform PEM -pubout -out client_rsa.pub'
    h) Load the db schema for blackhole sun into your SQL server
-      with mysql -u root -p < bhs.schema.sql
-   i) create an sql user for blackhole sun and grant data permissions
-   j) update the client.cfg file with the appropriate information
-   k) update the functions.cfg.php file with the appropriate information
+      with mysql -u root -p < bhs.schema.sql. This will create a database
+      called blackhole sun, generate the table schema, and load an initial user.
+      You can change the database name if you like as it is not hardcoded. 
+   i) Create an sql user for blackhole sun and grant data permissions      
+   j) Update the client.cfg file with the appropriate information
+   k) Update the functions.cfg.php file with the appropriate information
 
 8) On the server side 
-  
    a) prepend your exabgp.conf file with the following
         process exabgp-interface {
                 run /usr/local/bin/exabgp_interface.pl;
@@ -127,6 +128,32 @@ Installation:
 
 12) Start the processing engine (client) on the client host with
     /usr/local/bin/client.pl -f /usr/local/etc/blackholesun/client.cfg
+
+13) Login into BHS (e.g. https://myhost/blackholesun) as 'admin' with the initial
+    password of 'BlackHoleSun' You will be required to change your password immediately.
+    After you change the admin password click on the 'account' button and update the
+    account as necessary. You can change the username to something more appropriate if you like.
+    NB: You can add an initial user manually if you like but the stored password must
+    by hashed with BCRYPT in a way that is compatible with php's password_hash function.
+    In other words, the 'password' function in may RDBMs will not generate a compatible
+    password for user authentication. 
+
+14) Create an initial customer by clicking on the 'Customers' button and then
+    'New Customer'. This should be your home insitution or organization. The VLAN and ASN
+    values are not necessary and are not currently used in BHS. Under 'blocks' you can enter
+    the range of addresses assocated with your service or use 0.0.0.0/0. This will give the
+    admin and BHS staff full access to generate any blackhole route.
+
+15) If you have other customers (people you are providing network services to) create them
+    now using the 'New Customer' button. You only need to do this if you are allowing
+    representatives from these customers to add their own blackhole routes. You should
+    ensure that the blocks added for these customers are accurate and only reflect IP blocks
+    they directly control.
+
+16) Create new users as needed. The BHS admin has full control over Blackhole Sun and can
+    add/remove users and customers as well as creating and disabling routes. BHS Staff can
+    view, add, normalize, and disable routes for all customers. BHS Users can view, add, normalize
+    and disable routes defined only for the customer associated with that user. 
 
 
 

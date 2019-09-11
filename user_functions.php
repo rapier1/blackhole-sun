@@ -72,7 +72,7 @@ function listUsers()
 	// bh_user_role (int)
 	// bh_user_active (int|bool)
 	$role[1] = "User";
-	$role[2] = "PSC Admin";
+	$role[2] = "BHS Staff";
 	$role[4] = "BHS Admin";
 	$table_header = "<tr><th>Username</th><th>Name</th><th>Email</th><th>Affiliation</th><th>Role</th><th>Active</th><th>Edit</th></tr>";
 	$table_body = "";
@@ -118,7 +118,7 @@ function deleteUserWidget  ($user_id) {
 
 function newUserForm () {
 	$user_affiliation = userAffiliationWidget("");
-	$roles = array("1" => "User", "2" => "PSC Staff", "4" => "BHS Admin");
+	$roles = array("1" => "User", "2" => "BHS Staff", "4" => "BHS Admin");
 	$form  = "<form id='addUserForm' role='form' class='form-horizontal col-8' action='" .
 			htmlspecialchars($_SERVER["PHP_SELF"]) . "' method='post'>\n";
 	$form .= "<input type='hidden' name='action' value='addUser' />\n";
@@ -254,7 +254,7 @@ function loadUserForm ($user_id, $user_class, $user_id_session)
 			<label for='user-role'>Role:</label>
                         <div class='form-control'>
                           <select name='user-role' id='user-role'>";
-        $roles = array("1" => "User", "2" => "PSC Staff", "4" => "BHS Admin");
+        $roles = array("1" => "User", "2" => "BHS Staff", "4" => "BHS Admin");
         foreach (array_keys($roles) as $key) {
             $selected = '';
             if ($key == $result['bh_user_role']) {

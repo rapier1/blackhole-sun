@@ -33,7 +33,7 @@
     <meta name="description" content="BlackHole Sun">
     <meta name="author" content="Pittsburgh Supercompuing Center">
     <!--     <meta http-equiv="refresh" content="5;http://<?php echo $_SERVER['SERVER_NAME'] ?>/blackholesun/login.php"> -->
-    <link rel="icon" href="./favicon.ico">
+    <link rel="icon" href="./icons/favicon.ico">
     <title>BlackHole Sun</title>
     <link href="jquery/datatables.css" rel="stylesheet">                                                              
     <!-- Bootstrap core CSS -->
