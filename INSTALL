@@ -64,15 +64,17 @@ Installation:
    Email::Simple
    Email::Simple::Creator
    PHP::Functions::Password
+   Log::Log4perl
 
    First install libssl-dev (or libssl-devel). Then install the required modules with
 
-   cpan install IO::Socket::INET IO::Socket::Timeout CryptX \ 
+   cpan install IO::Socket::INET IO::Socket::Timeout CryptX CPAN::DistnameInfo\ 
                 Crypt::PK::RSA Crypt::PK::DH  Crypt::Mode::CTR Math::Pari\
                 Crypt::Random Config::Tiny Getopt::Std Data::Dumper \
                 JSON Switch DBI Net::Netmask Scalar::Util \
                 App::Genpass Email::Sender::Simple Email::Simple \
-                Email::Simple::Creator PHP::Functions::Password
+                Email::Simple::Creator PHP::Functions::Password \
+		Log::Log4perl
 
    Note: Crypt::Random depends on Math::Pari which can be annoying to install.
    Sorry about that. I'll be lokoing at replacing Crypt::Random with another random

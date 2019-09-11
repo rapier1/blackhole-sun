@@ -1652,7 +1652,8 @@ sub customerOnlyRoutes {
 	
 	# we only delete the route if the flag is true
 	if ( $delete_flag == 1 ) {
-	    delete %$routes_ref{$exaroute};
+	  my %routes = %$routes_ref;
+	    delete $routes{$exaroute};
 	}
     }
     
