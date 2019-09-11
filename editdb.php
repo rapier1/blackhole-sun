@@ -37,7 +37,11 @@ $input = filter_input_array(INPUT_POST);
 
 $request = json_encode($input);
 $response = sendToProcessingEngine($request);
-list($result, $msg) = emailNotification($request);
-/* not doing anything with the above yet */
+
+/* only send route update mail on success */
+if (preg_match ("/Success/", $response)) {
+        list($result, $msg) = emailNotification($request);
+        /* not doing anything with the above yet */
+}
 echo json_encode($response);
 ?>

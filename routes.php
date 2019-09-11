@@ -36,7 +36,7 @@
 <meta name="description" content="BlackHole Sun">
 <meta name="author" content="Pittsburgh Supercompuing Center">
 <link rel="icon" href="./icons/favicon.ico">
-<title>BlackHole Sun</title>
+<title>BlackHole Sun Route Administration</title>
 <link href="jquery/datatables.css" rel="stylesheet">
 <!-- Bootstrap core CSS -->
 <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
