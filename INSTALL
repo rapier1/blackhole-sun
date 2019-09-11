@@ -77,7 +77,7 @@ Installation:
 		Log::Log4perl
 
    Note: Crypt::Random depends on Math::Pari which can be annoying to install.
-   Sorry about that. I'll be lokoing at replacing Crypt::Random with another random
+   Sorry about that. I'll be looking at replacing Crypt::Random with another random
    number generator shortly. 
 
 7) Now that you have the environment set up you need to do the following on the client
