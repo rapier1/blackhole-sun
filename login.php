@@ -165,7 +165,6 @@ else if ($_SERVER["REQUEST_METHOD"] == "POST")
     <script src="trmodals.js"></script>
     <script>
      <?php
-     print "modalSetFormSrc('login');\n";
      print "loginFormInfo($errFlag, '$errMsg');\n";
      ?>
     </script>

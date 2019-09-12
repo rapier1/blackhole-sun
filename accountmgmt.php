@@ -133,9 +133,6 @@
     <script>
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doign here is using php to write javascript.
-     // dirty!
-     print "modalSetFormSrc('accountMgmt');\n";
      print "accountMgmtFormInfo($errFlag, '$errMsg', '$url');\n";
      ?>
     </script>

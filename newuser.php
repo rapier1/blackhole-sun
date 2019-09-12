@@ -111,9 +111,6 @@
     <script>
      <?php
      // This has to be kept in the footers as we don't have the variable data yet.
-     // by the way, what we are doing here is using php to write javascript.
-     // dirty!
-     print "modalSetFormSrc('newUser');\n";
      print "newUserFormInfo($errFlag, '$errMsg', '$url');\n";
      ?>
     </script>

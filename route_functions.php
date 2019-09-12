@@ -144,7 +144,6 @@ function buildTableJS ($type, $table) {
 	deleteButton: false,
 	onSuccess: function (data, textStatus, jqXHR) {
 	    obj = JSON.parse(data);
-        modalSetFormSrc('routes');
 	    if (obj.results == 'Success') {
 		    routesFormInfo(0, 'Route successfully updated');
 	    } else {
@@ -164,8 +163,7 @@ function buildTableJS ($type, $table) {
 	},
 	// on a failure we should find some way to revert to the prior values
 	onFail(jqXHR, textStatus, errorThrown) {
-        modalSetFormSrc('routes');
-	    routesFormInfor(1, 'fail! ' + errorThrown  + ' : ' + textStatus);
+	    routesFormInfo(1, 'fail! ' + errorThrown  + ' : ' + textStatus);
 	    return;
 	},
 	columns: {
