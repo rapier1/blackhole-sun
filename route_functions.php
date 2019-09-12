@@ -21,9 +21,10 @@
  * this function, even though I wrote it, strikes me as odd. I believe
  * there is a better way to do this
  *  action: value sent by specific submit button
- *  data: form values
+ *  data: form values (trim this as we may get unexpected newlines at the end)
  */
 function parseResponse ($action, $data) {
+    $data = trim ($data);
     switch ($action) {
 	case 'blackhole':
             confirmBH($data);
@@ -39,7 +40,7 @@ function parseResponse ($action, $data) {
 	    break;
 	case 'pushchanges':
 	    if (preg_match("/Success/", $data)) {
-		$_SESSSION['errFlag'] = 0;
+		$_SESSION['errFlag'] = 0;
 	    } else {
 		$_SESSION['errFlag'] = 1;
 	    }
