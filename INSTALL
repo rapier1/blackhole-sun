@@ -33,11 +33,13 @@ Installation:
    Getopt::Std
    Data::Dumper
    Capture::Tiny 
+   Test
    Log::Log4perl
+	
 
    cpan install IO::Socket::INET IO::Socket::Timeout CryptX Crypt::PK::RSA \
                 Crypt::PK::DH Crypt::Mode::CTR Crypt::Random Config::Tiny \
-                Getopt::Std Data::Dumper Capture::Tiny Log::Log4perl 
+                Getopt::Std Data::Dumper Capture::Tiny Test Log::Log4perl 
 
 
    For the client (processing engine) you will need these

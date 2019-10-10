@@ -82,7 +82,7 @@ $page_id = "routes";
 ?>
 
 </head>
-
+ 
 <body>
     <?php include ("./modals.php"); ?>
     <?php include ("./navbar.php"); ?>    
@@ -172,14 +172,25 @@ $page_id = "routes";
 		    <input type="submit" name="submit" value="Add BH Route">
 		</form>
 		<script type="text/javascript">
-		 document.getElementById("bh_startdate").valueAsDate = new Date();
-		 var hours = new Date().getHours();
-		 var minutes = new Date().getUTCMinutes();
-		 if (minutes < 10) {
-		     minutes = "0" + minutes;
+		 function hasDatePicker() {
+		     var input = document.createElement('input');
+		     input.setAttribute('type', 'date');
+		     input.value = '2018-01-01';
+		     return !!input.valueAsDate;
 		 }
-		 time = hours + ":" + minutes;
-		 document.getElementById("bh_starttime").value = time;
+
+		 if (hasDatePicker()) {
+		     document.getElementById("bh_startdate").valueAsDate = new Date();
+		     var hours = new Date().getHours();
+		     var minutes = new Date().getUTCMinutes();
+		     if (minutes < 10) {
+			 minutes = "0" + minutes;
+		     }
+		     time = hours + ":" + minutes;
+		     document.getElementById("bh_starttime").value = time;
+		 } else {
+		     alert ("Your browser does not support Blackhole Sun properly; you are likely using Safari. Please use another broswer such as Chrome, Firefox, or Opera");
+		 }
 		</script>
 		<?php
 		/* set this to your local timezone */
