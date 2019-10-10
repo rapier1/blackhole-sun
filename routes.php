@@ -174,6 +174,9 @@ $page_id = "routes";
 		<script type="text/javascript">
 		 document.getElementById("bh_startdate").valueAsDate = new Date();
 		 var hours = new Date().getHours();
+		 if (hours < 10) {
+		     hours = "0" + hours;
+		 }
 		 var minutes = new Date().getUTCMinutes();
 		 if (minutes < 10) {
 		     minutes = "0" + minutes;
