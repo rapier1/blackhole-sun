@@ -432,14 +432,18 @@ sub mainloop {
 		$logger->debug("buffer is $buf");
 		
 		#inbound request is in json - no new lines/indents though
-		my $json = validateJson($buf);
-		if ( $json != -1 ) {
+		my $json = validateJson($buf);		
+		if ( $json == -1 ) {
+		    print $child "Invalid JSON\n";
+		} elsif (verifySignature($json) == -1) {
+		    print $child "Invalid signature\n";
+		} else {
+		    $logger->debug("About to verify the signature");
+		    my $sigcheck = verifySignature($json);
 		    $logger->debug("About to process inbound request");
 		    my $status = processInboundRequests( $child, $json );
 		    $logger->debug("I got $status");
 		    print $child "$status\n";
-		} else {
-		    print $child "Invalid JSON\n";
 		}
 		exit(0);    # Child process exits when it is done.
 	    }    # else 'tis the parent process, which goes back to accept()
@@ -462,6 +466,38 @@ sub validateJson {
 	return -1;
     }    
     return $text;
+}
+
+# strip off the UUID and signature
+# get the public key from the database corresponding to the UUID
+# verify the signature
+# return -1 on failure
+# inbound json looks like
+# {'action' => 'string',
+#  'other items' => value
+#  ...
+# 'signature' => 'string'
+# 'uuid' => 'string'}
+sub verifySignature {
+    my $json = shift;
+    my $signature = $json->{signature};
+    delete $json->{signature};
+    my $uuid = $json->{uuid};
+    delete $json->{uuid};
+
+    # the json has been decoded but the signature is against the
+    # encoded json so we need to encode it back to json
+    $json = encode_json($json);
+
+    # now we need to get the public key using the UUID
+    # we are using the UUID to get the right file path
+    my $path = $config->{'uikeys'}->{$uuid};
+    my $public_key = Crypt::PK::RSA->new($path);
+       
+    #we have the public key and the json string and the signature
+    my $valid = $public_key->verify_message($json, $signature, "SHA256");
+
+    return $valid;
 }
 
 # some basic input validation 

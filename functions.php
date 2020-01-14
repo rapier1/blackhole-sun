@@ -167,6 +167,28 @@ function normalizeListInput ($list) {
  * and get anything back for display
  */
 function sendToProcessingEngine ($request) {
+    /* in order to confirm who we are and maintain security
+     * we are going to cryptographically sign each message sent with
+     * a local private key. So we need to send the request to another 
+     * funtion that will load the key, sign the message,
+     * and append the message to the json struct
+     * along with an identifier of the client. This identifier
+     * informs the client as to which public key it shoudl be using
+     * to verify the signature
+     */
+    $request = signMessage($request);
+    if ($request == -1) {
+	return "Could not load private key to sign message";
+    } elseif ($request == -2) {
+	return "Could not sign the message with the private key";
+    } elseif ($request == -3) {
+	return "Could not decode outbound JSON request";
+    } elseif ($request == -4) {
+	return "Could not encode outbound JSON request";
+    }
+
+    /* that worked so send out the request */
+    
     /* open the socket */
     if (!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
         $errorcode = socket_last_error();
@@ -192,6 +214,35 @@ function sendToProcessingEngine ($request) {
         return "Could not receive data: [$errorcode] $errormsg \n";
     }
     return $buf;
+}
+
+/* sign the outbound message request with a crypto signature
+ * request is in JSON format so we need to add to the end of it without
+ * breaking the json structure. We'll be using a private key to sign the
+ * contents. We also need to append a unique identifier to the message
+ * so the client knows what key to look at
+ */
+function signMessage ($request) {
+    /* get the private key - ideally this could be cached using memcache
+     * but that's for later and after a security review */
+    $private = openssl_key_get_private(PRIVATE_SIGNATURE_KEY);
+    if ($private === FALSE) {
+	return -1;
+    }
+    if (openssl_sign($reqeust, $signature, $private, "sha256") === FALSE) {
+	return -2;
+    }
+    $json_array = json_decode($request);
+    if ($json_array === NULL) {
+	return -3;
+    }
+    $json_array['signature'] = $signature;
+    $json_array['uuid'] = UI_UUID;
+    $request = json_encode ($json_array);
+    if ($request === FALSE) {
+	return -4;
+    }
+    return $request;
 }
 
 /* this creates the widget used to change the user password
