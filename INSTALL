@@ -48,6 +48,7 @@ Installation:
    IO::Socket::INET
    IO::Socket::Timeout
    CryptX
+   Crypt::OpenSSL::RSA
    Crypt::PK::RSA
    Crypt::PK::DH
    Crypt::Mode::CTR
@@ -76,7 +77,7 @@ Installation:
                 JSON Switch DBI Net::Netmask Scalar::Util \
                 App::Genpass Email::Sender::Simple Email::Simple \
                 Email::Simple::Creator PHP::Functions::Password \
-		Log::Log4perl
+		Log::Log4perl Crypt::OpenSSL::RSA
 
    Note: Crypt::Random depends on Math::Pari which can be annoying to install.
    Sorry about that. I'll be looking at replacing Crypt::Random with another random
@@ -96,6 +97,11 @@ Installation:
       in /usr/local/etc/blackholesun/keys with 
       'openssl genrsa -out client_rsa 2048'
       'rsa -in client_rsa -outform PEM -pubout -out client_rsa.pub'
+   h) Create a key pair and uuid to sign the messages between interface and
+      client process. You can roll your own or use makeuikeys.php to
+      generate them for you. Copy the private and public keys
+      to /usr/local/etc/blackholesun/keys. Ensure that the private key
+      is only readable by the httpd process.
    h) Load the db schema for blackhole sun into your SQL server
       with mysql -u root -p < bhs.schema.sql. This will create a database
       called blackhole sun, generate the table schema, and load an initial user.
@@ -154,12 +160,15 @@ Installation:
 
 16) Create new users as needed. The BHS admin has full control over Blackhole Sun and can
     add/remove users and customers as well as creating and disabling routes. BHS Staff can
-    view, add, normalize, and disable routes for all customers. BHS Users can view, add, normalize
-    and disable routes defined only for the customer associated with that user. 
+    view, add, normalize, and disable routes for all customers. BHS Users can view,
+    add, normalize, and disable routes defined only for the
+    customer associated with that user. 
 
 
 
 Troubleshooting:
+
+Enabled debugging in the client process with the -d option. 
 
 Make sure that the firewall will allow connections between the two hosts.
 If the status lights indicate that the client is up but the interface or
