@@ -240,12 +240,12 @@ function signMessage ($request) {
     $outbound_json['signature'] = bin2hex($signature);
     $outbound_json['uuid'] = UI_UUID;
 
-    $request = json_encode ($outbound_json);
-    if ($request === FALSE) {
+    $signed_request = json_encode ($outbound_json);
+    if ($signed_request === FALSE) {
         return -3;
     }
 
-    return $request;
+    return $signed_request;
 }
 
 /* this creates the widget used to change the user password
