@@ -178,17 +178,14 @@ function sendToProcessingEngine ($request) {
      */
     $request = signMessage($request);
     if ($request == -1) {
-	return "Could not load private key to sign message";
+        return "Could not load private key to sign message";
     } elseif ($request == -2) {
-	return "Could not sign the message with the private key";
+        return "Could not sign the message with the private key";
     } elseif ($request == -3) {
-	return "Could not decode outbound JSON request";
-    } elseif ($request == -4) {
-	return "Could not encode outbound JSON request";
+        return "Could not encode outbound JSON request";
     }
-
     /* that worked so send out the request */
-    
+
     /* open the socket */
     if (!($sock = socket_create(AF_INET, SOCK_STREAM, 0))) {
         $errorcode = socket_last_error();
@@ -225,23 +222,29 @@ function sendToProcessingEngine ($request) {
 function signMessage ($request) {
     /* get the private key - ideally this could be cached using memcache
      * but that's for later and after a security review */
-    $private = openssl_key_get_private(PRIVATE_SIGNATURE_KEY);
+    $key_path = "file://" . PRIVATE_SIGNATURE_KEY;
+    $private = openssl_pkey_get_private($key_path);
     if ($private === FALSE) {
-	return -1;
+        return -1;
     }
-    if (openssl_sign($reqeust, $signature, $private, "sha256") === FALSE) {
-	return -2;
+    if (openssl_sign($request, $signature, $private, OPENSSL_ALGO_SHA256) === FALSE) {
+        return -2;
     }
-    $json_array = json_decode($request);
-    if ($json_array === NULL) {
-	return -3;
-    }
-    $json_array['signature'] = $signature;
-    $json_array['uuid'] = UI_UUID;
-    $request = json_encode ($json_array);
+
+    /* at this point we've signed the request but we are going to create a new
+     * json object where the request is one member and the signature and uuid
+     * are other members
+     */
+
+    $outbound_json['request'] = $request;
+    $outbound_json['signature'] = bin2hex($signature);
+    $outbound_json['uuid'] = UI_UUID;
+
+    $request = json_encode ($outbound_json);
     if ($request === FALSE) {
-	return -4;
+        return -3;
     }
+
     return $request;
 }
 

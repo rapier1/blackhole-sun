@@ -35,9 +35,10 @@ use Crypt::PK::RSA;
 use Crypt::PK::DH qw(dh_shared_secret);
 use Crypt::Mode::CTR;
 use Crypt::Random qw(makerandom);
+use Crypt::OpenSSL::RSA; #used to verify message key. PK::RSA wasn't working
 use Config::Tiny;
 use Getopt::Std;
-use Data::Dumper;
+use Data::Dumper; #for debugging purposes
 use JSON;
 use Switch;
 use DBI;
@@ -53,6 +54,8 @@ use Email::Simple::Creator;
 # functions in the php side match what
 # we generate here
 use PHP::Functions::Password qw(:all);
+
+#logging functionality
 use Log::Log4perl;
 
 my %options  = ();
@@ -122,6 +125,9 @@ sub validateConfig {
 	exit;
     }
 
+    #note we can't check for the existence of the interface key in the
+    #config as we don't know it. the path to that file is sent with the message
+    
     #check the database information
     if ( !defined $config->{'database'}->{'host'} ) {
 	print STDERR "Database host not defined. Exiting.\n";
@@ -168,14 +174,14 @@ sub authorize {
     my $authorized = -1;
 
     #send the auth request to the server
-    $logger->debug("ST: sending auth");
+    $logger->debug("ST: sending auth") if ($options{d});
     print $socket "auth\n";
 
     #we will get two responses from the server
-    $logger->debug("ST waiting on sig_srv");
+    $logger->debug("ST waiting on sig_srv") if ($options{d});
     my $sig_srv = <$socket>;
     chomp $sig_srv;
-    $logger->debug("ST waiting on dh_public_srv");
+    $logger->debug("ST waiting on dh_public_srv") if ($options{d});
     my $dhpublic_srv = <$socket>;
     chomp $dhpublic_srv;
 
@@ -220,24 +226,24 @@ sub authorize {
     #again we convert that to text for ease of transmission
     $clientsecret = unpack( qq{H*}, $clientsecret );
 
-    $logger->debug("Got the secret $clientsecret");
+    $logger->debug("Got the secret $clientsecret") if ($options{d});
 
     # we now have all three elements that the server is waiting on
     # so send it over to them
 
     my $keydata = "$sig_client:$dhpublic_cli:$clientsecret\n";
-    $logger->debug("ST: sending key data");
+    $logger->debug("ST: sending key data") if ($options{d});
     print $socket $keydata;
 
     #wait until we get an auth response from the server
-    $logger->debug("ST Waiting on auth");
+    $logger->debug("ST Waiting on auth") if ($options{d});
 
     $authorized = <$socket>;
     chomp $authorized;
 
     $authorized = decrypt($authorized);
         
-    $logger->debug("authorized = $authorized");
+    $logger->debug("authorized = $authorized") if ($options{d});
 
     return $authorized;
 }
@@ -332,7 +338,6 @@ sub decrypt {
     my $enclear;
     my $key;
     my $cli_private;
-    $logger->debug("Decrypt: Received $ciphertext\n");
     
     #we need to grab the 1st 16 bytes as the iv
     my $iv = substr($ciphertext, 0, 16);
@@ -382,7 +387,7 @@ sub decrypt {
 sub openExaSocket {
     $logger->debug(
 	"About to open ExaSocket: $config->{'interface'}->{'host'}, $config->{'interface'}->{'port'}"
-	);
+	) if ($options{d});
     my $sock; 
     eval {$sock = IO::Socket::INET->new(
 	      PeerAddr => $config->{'interface'}->{'host'},
@@ -429,22 +434,37 @@ sub mainloop {
 	    # Child process
 	    while ( defined( my $buf = <$child> ) ) {
 		chomp $buf;
-		$logger->debug("buffer is $buf");
+		$logger->debug("buffer is $buf") if ($options{d});
 		
 		#inbound request is in json - no new lines/indents though
-		my $json = validateJson($buf);		
-		if ( $json == -1 ) {
-		    print $child "Invalid JSON\n";
-		} elsif (verifySignature($json) == -1) {
-		    print $child "Invalid signature\n";
-		} else {
-		    $logger->debug("About to verify the signature");
-		    my $sigcheck = verifySignature($json);
-		    $logger->debug("About to process inbound request");
-		    my $status = processInboundRequests( $child, $json );
-		    $logger->debug("I got $status");
-		    print $child "$status\n";
+		#this is the signed json request
+		my $inboundJSON = validateJson($buf);		
+		if ( $inboundJSON == -1 ) {
+		    $logger->error("Invalid inbound JSON request");
+		    print $child "Invalid Inbound JSON\n";
+		    exit(0);
 		}
+		$logger->debug("About to verify the signature") if ($options{d});
+		my $verifiedJSON = verifySignature($inboundJSON);
+		#need to use looks_like_number because the return shouldn't be
+		#numeric unless it's a failure
+		if (looks_like_number($verifiedJSON)) { #need to use this
+		    if ($verifiedJSON == 0) {
+			$logger->error("Invalid signature in JSON request");
+			print $child "Invalid signature\n";
+			exit(0);
+		    }
+		}
+		my $requestJSON = validateJson($verifiedJSON);
+		if ($requestJSON == -1) {
+		    $logger->error("Invalid request JSON");
+		    print $child "Invalid Request JSON\n";
+		    exit(0);
+		}   
+		$logger->debug("About to process inbound request") if ($options{d});
+		my $status = processInboundRequests( $child, $requestJSON);
+		$logger->debug("I got $status") if ($options{d});
+		print $child "$status\n";
 		exit(0);    # Child process exits when it is done.
 	    }    # else 'tis the parent process, which goes back to accept()
 	}
@@ -481,23 +501,46 @@ sub validateJson {
 sub verifySignature {
     my $json = shift;
     my $signature = $json->{signature};
-    delete $json->{signature};
     my $uuid = $json->{uuid};
-    delete $json->{uuid};
+    my $request = $json->{request};
+    my $path = $config->{'uikeys'}->{$uuid};
+    my $public_key;
 
-    # the json has been decoded but the signature is against the
-    # encoded json so we need to encode it back to json
-    $json = encode_json($json);
-
+    # this signature is in hex and we need it to be in binary format
+    $signature = pack (qq{H*}, $signature);
+    
     # now we need to get the public key using the UUID
     # we are using the UUID to get the right file path
-    my $path = $config->{'uikeys'}->{$uuid};
-    my $public_key = Crypt::PK::RSA->new($path);
-       
-    #we have the public key and the json string and the signature
-    my $valid = $public_key->verify_message($json, $signature, "SHA256");
+    if (! -e $config->{'uikeys'}->{$uuid}) {
+	$logger->error("Public key file for message signatures not found");
+	return 0;
+    }
+    open (my $KEY, '<', $config->{'uikeys'}->{$uuid});
+    if (! $KEY) {
+	$logger->error("Could not open file to read public key");
+	return 0;
+    }
 
-    return $valid;
+    #read the public key into a string
+    while (<$KEY>) {
+	$public_key .= $_;
+    }
+
+    # load the public key into the object
+    my $rsa_pub = Crypt::OpenSSL::RSA->new_public_key($public_key);
+    if (!$rsa_pub) {
+	$logger->error("Could not load public key into object");
+	return 0;
+    }
+    
+    #ensure we are using the right hash algorithm
+    $rsa_pub->use_sha256_hash();
+
+    #we have the public key and the json string and the signature
+    if ($rsa_pub->verify($request, $signature)) {
+	return $request; #verification successful return the request
+    } 
+    return 0; # this means the verification failed
 }
 
 # some basic input validation 
@@ -573,13 +616,13 @@ sub processInboundRequests {
 	    }
 	    
 	    # add it to the DB first in case there is an error adding it
-	    $logger->debug("About to add route to database");
+	    $logger->debug("About to add route to database") if ($options{d});
 	    my $db_stat = &addRouteToDB($json);
 	    if ( $db_stat != 1 ) {
 		return "Error adding route to Database: $db_stat";
 	    }
 	    
-	    $logger->debug("About to interface with ExaBGP");
+	    $logger->debug("About to interface with ExaBGP") if ($options{d});
 	    my $status = sendtoExaBgpInt( $child, $json, "add" );
 	    
 	    # add route to the database
@@ -754,7 +797,7 @@ sub sendtoExaBgpInt {
     }
     my $status = &blackHole( $exa_socket, $request, $action );
     my $unpacked_request = objectToString($request);
-    $logger->debug("I sent $unpacked_request and $action and received $status");
+    $logger->debug("I sent $unpacked_request and $action and received $status") if ($options{d});
     close($exa_socket);
     return $status;
 }
@@ -928,7 +971,7 @@ sub blackHole {
 	    return -5;
 	}
     }
-    $logger->debug("Received $status");
+    $logger->debug("Received $status") if ($options{d});
     
     #decrypt whatever we received
     $status = decrypt($status);
@@ -942,7 +985,7 @@ sub blackHole {
 	}
     }
     
-    $logger->debug("status in function blackHole is $status");
+    $logger->debug("status in function blackHole is $status") if ($options{d});
     
     # if we are dumping routes we'll just get a blob of text
     # this isn't the best way to do this because if we are dumping
@@ -973,8 +1016,8 @@ sub blackHole {
 # and only update the db
 sub editRouteInDB {
     my $json = shift @_;
-    $logger->debug("about to edit route in DB");
-    
+    $logger->debug("about to edit route in DB") if ($options{d});
+
     # if for some reason we don't have a valid bh_index
     # and it is equal to NULL then the update fails
     if ( !defined $json->{'bh_index'} ) {
@@ -1020,7 +1063,7 @@ sub editRouteInDB {
 	sendtoExaBgpInt( "", \%route, "del" );
     }
     
-    $logger->debug( "Inbound json object is" . objectToString($json) );
+    $logger->debug( "Inbound json object is" . objectToString($json) ) if ($options{d});
     if ( $json->{'bh_active'} == 1 ) {
 	
 	# if the new route is different than the old route then
@@ -1306,7 +1349,7 @@ sub addUser {
 	return "Could not access the database.";
     }
 
-    $logger->debug( "AddUser inbound data: " . objectToString($json) );
+    $logger->debug( "AddUser inbound data: " . objectToString($json) ) if ($options{d});
     my $query = "INSERT INTO bh_users 
 		             (bh_user_name, bh_user_fname, bh_user_lname, 
                               bh_user_email, bh_user_affiliation, bh_user_role,
@@ -1980,11 +2023,12 @@ sub customerLookup {
 
 
 # get the command line options
-getopts( "f:h", \%options );
+getopts( "f:dh", \%options );
 if ( defined $options{h} ) {
     print "client usage\n";
     print "\client.pl [-f] [-h]\n";
     print "\t-f path to configuration file. Defaults to /usr/local/etc/client.cfg\n";
+    print "\t-d enable debugging in the log file\n";
     print "\t-h this help text\n";
     exit;
 }
